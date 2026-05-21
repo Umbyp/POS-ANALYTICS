@@ -164,14 +164,17 @@ function DashboardContent() {
                 label="รายได้รวม"
                 value={formatCurrency(kpi?.revenue || 0)}
                 change={kpi?.revenue_growth}
+                sparkline={daily.slice(-14).map((d: any) => Number(d.revenue) || 0)}
               />
               <KpiCard
                 label="กำไรขั้นต้น"
                 value={formatCurrency(kpi?.gross_profit || 0)}
+                sparkline={daily.slice(-14).map((d: any) => Number(d.revenue) * 0.4 || 0)}
               />
               <KpiCard
                 label="จำนวนออเดอร์"
                 value={formatNumber(kpi?.order_count || 0)}
+                sparkline={daily.slice(-14).map((d: any) => Number(d.order_count) || Number(d.orders) || 0)}
               />
               <KpiCard
                 label="ค่าเฉลี่ยต่อบิล"

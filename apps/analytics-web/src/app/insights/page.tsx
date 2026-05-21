@@ -12,18 +12,18 @@ import { api, formatCurrency, cn } from '@/lib/api';
 
 // ─── Type / Severity meta ────────────────────────────────
 const TYPE_META: Record<string, { icon: any; label: string; color: string; bg: string }> = {
-  TREND:          { icon: TrendingUp,    label: 'เทรนด์',       color: 'text-indigo-400',  bg: 'bg-indigo-500/10' },
-  ANOMALY:        { icon: AlertCircle,   label: 'ผิดปกติ',      color: 'text-rose-400',    bg: 'bg-rose-500/10'   },
-  INVENTORY:      { icon: Package,       label: 'สต็อก',        color: 'text-amber-400',   bg: 'bg-amber-500/10'  },
-  PROFIT:         { icon: DollarSign,    label: 'กำไร',         color: 'text-emerald-400', bg: 'bg-emerald-500/10'},
-  FORECAST:       { icon: Sparkles,      label: 'พยากรณ์',      color: 'text-violet-400',  bg: 'bg-violet-500/10' },
-  RECOMMENDATION: { icon: Target,        label: 'แนะนำ',        color: 'text-cyan-400',    bg: 'bg-cyan-500/10'   },
+  TREND:          { icon: TrendingUp,    label: 'เทรนด์',       color: 'text-primary',  bg: 'bg-primary/10' },
+  ANOMALY:        { icon: AlertCircle,   label: 'ผิดปกติ',      color: 'text-danger',   bg: 'bg-danger/10'  },
+  INVENTORY:      { icon: Package,       label: 'สต็อก',        color: 'text-warning',  bg: 'bg-warning/10' },
+  PROFIT:         { icon: DollarSign,    label: 'กำไร',         color: 'text-success',  bg: 'bg-success/10' },
+  FORECAST:       { icon: Sparkles,      label: 'พยากรณ์',      color: 'text-primary',  bg: 'bg-primary/10' },
+  RECOMMENDATION: { icon: Target,        label: 'แนะนำ',        color: 'text-primary',  bg: 'bg-primary/10' },
 };
 
 const SEV_META: Record<string, { icon: any; label: string; color: string; border: string; badge: string }> = {
-  CRITICAL: { icon: AlertTriangle, label: 'วิกฤต',    color: 'text-rose-400',    border: 'border-l-rose-500',    badge: 'bg-rose-500/20 text-rose-300' },
-  WARNING:  { icon: AlertCircle,   label: 'เตือน',    color: 'text-amber-400',   border: 'border-l-amber-500',   badge: 'bg-amber-500/20 text-amber-300' },
-  INFO:     { icon: Info,          label: 'ข้อมูล',   color: 'text-indigo-400',  border: 'border-l-indigo-500',  badge: 'bg-indigo-500/20 text-indigo-300' },
+  CRITICAL: { icon: AlertTriangle, label: 'วิกฤต',    color: 'text-danger',  border: 'border-l-danger',  badge: 'bg-danger/15 text-danger'   },
+  WARNING:  { icon: AlertCircle,   label: 'เตือน',    color: 'text-warning', border: 'border-l-warning', badge: 'bg-warning/15 text-warning' },
+  INFO:     { icon: Info,          label: 'ข้อมูล',   color: 'text-primary', border: 'border-l-primary', badge: 'bg-primary/15 text-primary' },
 };
 
 const ALL_FILTERS = ['ทั้งหมด', 'CRITICAL', 'WARNING', 'INFO'] as const;
@@ -54,7 +54,7 @@ function InsightCardFull({ insight, delay = 0 }: { insight: any; delay?: number 
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
       className={cn(
-        'glass rounded-xl p-4 border-l-[3px] hover:bg-white/[0.06] transition-colors',
+        'bg-card border border-border rounded-xl p-4 border-l-[3px] hover:bg-card-hover transition-colors',
         sev.border
       )}
     >
@@ -111,10 +111,10 @@ function SummaryBar({ insights }: { insights: any[] }) {
   const info     = insights.filter(i => i.severity === 'INFO').length;
 
   const stats = [
-    { label: 'วิกฤต',   count: critical, icon: AlertTriangle, color: 'text-rose-400',    bg: 'bg-rose-500/10',    border: 'border-rose-500/30' },
-    { label: 'เตือน',   count: warning,  icon: AlertCircle,   color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30' },
-    { label: 'ข้อมูล',  count: info,     icon: Info,          color: 'text-indigo-400',  bg: 'bg-indigo-500/10',  border: 'border-indigo-500/30' },
-    { label: 'ทั้งหมด', count: insights.length, icon: BarChart3, color: 'text-muted-foreground', bg: 'bg-white/5', border: 'border-white/10' },
+    { label: 'วิกฤต',   count: critical, icon: AlertTriangle, color: 'text-danger',  bg: 'bg-danger/10',  border: 'border-danger/30' },
+    { label: 'เตือน',   count: warning,  icon: AlertCircle,   color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/30' },
+    { label: 'ข้อมูล',  count: info,     icon: Info,          color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30' },
+    { label: 'ทั้งหมด', count: insights.length, icon: BarChart3, color: 'text-muted-foreground', bg: 'bg-card-hover', border: 'border-border' },
   ];
 
   return (
@@ -139,25 +139,26 @@ function SummaryBar({ insights }: { insights: any[] }) {
 function RestockTable({ items }: { items: any[] }) {
   if (!items?.length) return (
     <div className="text-sm text-muted-foreground flex items-center gap-2 py-4">
-      <CheckCircle2 className="w-4 h-4 text-emerald-400" /> สต็อกเพียงพอทุกรายการ
+      <CheckCircle2 className="w-4 h-4 text-success" /> สต็อกเพียงพอทุกรายการ
     </div>
   );
 
   return (
     <div className="space-y-2">
       {items.map((r: any) => {
-        const urgency = r.days_until_out <= 2 ? 'rose' : r.days_until_out <= 5 ? 'amber' : 'indigo';
+        const urgency = r.days_until_out <= 2 ? 'danger' : r.days_until_out <= 5 ? 'warning' : 'primary';
+        const dotColor = urgency === 'danger' ? 'bg-danger' : urgency === 'warning' ? 'bg-warning' : 'bg-primary';
         return (
-          <div key={r.product_id} className="flex items-center justify-between text-sm p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
+          <div key={r.product_id} className="flex items-center justify-between text-sm p-3 rounded-lg bg-card border border-border hover:bg-card-hover transition-colors">
             <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${urgency === 'rose' ? 'bg-rose-400' : urgency === 'amber' ? 'bg-amber-400' : 'bg-indigo-400'}`} />
+              <div className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
               <div className="min-w-0">
                 <div className="font-medium truncate">{r.product_name}</div>
                 <div className="text-xs text-muted-foreground">{r.reason}</div>
               </div>
             </div>
             <div className="text-right shrink-0 ml-3">
-              <div className="font-bold text-emerald-400">+{r.suggested_order_qty}</div>
+              <div className="font-bold text-success">+{r.suggested_order_qty}</div>
               <div className="text-[10px] text-muted-foreground">ชิ้น</div>
             </div>
           </div>
@@ -206,14 +207,14 @@ function InsightsContent() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-400" /> AI Insights
+            <Sparkles className="w-5 h-5 text-primary" /> AI Insights
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">วิเคราะห์ธุรกิจอัตโนมัติ — เทรนด์ สต็อก กำไร โอกาส ความเสี่ยง</p>
         </div>
         <button
           onClick={() => generate.mutate()}
           disabled={generate.isPending}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium disabled:opacity-50 transition-colors shadow-lg shadow-indigo-500/20"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-primary-foreground text-sm font-medium disabled:opacity-50 transition-colors shadow-sm"
         >
           <RefreshCw className={cn('w-4 h-4', generate.isPending && 'animate-spin')} />
           {generate.isPending ? 'กำลังวิเคราะห์...' : 'วิเคราะห์ใหม่'}
@@ -225,12 +226,12 @@ function InsightsContent() {
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 flex items-center gap-3"
+          className="bg-danger/10 border border-danger/30 rounded-xl p-4 flex items-center gap-3"
         >
-          <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+          <AlertTriangle className="w-5 h-5 text-danger shrink-0" />
           <div>
-            <div className="text-sm font-semibold text-rose-300">ต้องการความสนใจทันที</div>
-            <div className="text-xs text-rose-400/80 mt-0.5">
+            <div className="text-sm font-semibold text-danger">ต้องการความสนใจทันที</div>
+            <div className="text-xs text-danger/80 mt-0.5">
               มี {insights.filter((i: any) => i.severity === 'CRITICAL').length} รายการวิกฤตที่ต้องดำเนินการ — ดูรายละเอียดด้านล่าง
             </div>
           </div>
@@ -243,7 +244,7 @@ function InsightsContent() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4 items-center">
         {/* Severity filter */}
-        <div className="flex items-center gap-1.5 bg-white/[0.04] border border-white/[0.08] rounded-xl p-1">
+        <div className="flex items-center gap-1.5 bg-card border border-border rounded-xl p-1">
           {ALL_FILTERS.map(f => {
             const count = f === 'ทั้งหมด' ? insights.length : insights.filter((i: any) => i.severity === f).length;
             return (
@@ -253,8 +254,8 @@ function InsightsContent() {
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
                   sevFilter === f
-                    ? 'bg-indigo-600 text-white shadow'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.05]'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-card-hover'
                 )}
               >
                 {f === 'CRITICAL' ? 'วิกฤต' : f === 'WARNING' ? 'เตือน' : f === 'INFO' ? 'ข้อมูล' : f}
@@ -277,8 +278,8 @@ function InsightsContent() {
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap border',
                   typeFilter === t
-                    ? (meta ? cn(meta.bg, meta.color, 'border-transparent') : 'bg-white/10 text-white border-transparent')
-                    : 'border-white/[0.08] text-muted-foreground hover:text-foreground hover:bg-white/[0.04]'
+                    ? (meta ? cn(meta.bg, meta.color, 'border-transparent') : 'bg-foreground text-background border-transparent')
+                    : 'border-border text-muted-foreground hover:text-foreground hover:bg-card-hover'
                 )}
               >
                 {meta ? meta.label : t} ({count})
@@ -297,7 +298,7 @@ function InsightsContent() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="glass rounded-2xl p-12 text-center text-muted-foreground">
+          <div className="bg-card border border-border rounded-2xl p-12 text-center text-muted-foreground">
             <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-30" />
             {insights.length === 0
               ? 'ยังไม่มี insight — กด "วิเคราะห์ใหม่" เพื่อให้ AI สร้าง'
@@ -325,11 +326,11 @@ function InsightsContent() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Restock */}
-            <div className="glass rounded-2xl p-5">
+            <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm">
-                <Package className="w-4 h-4 text-amber-400" /> ควรสั่งสินค้าเพิ่ม
+                <Package className="w-4 h-4 text-warning" /> ควรสั่งสินค้าเพิ่ม
                 {recs.restock?.length > 0 && (
-                  <span className="ml-auto text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">
+                  <span className="ml-auto text-xs bg-warning/15 text-warning px-2 py-0.5 rounded-full">
                     {recs.restock.length} รายการ
                   </span>
                 )}
@@ -338,9 +339,9 @@ function InsightsContent() {
             </div>
 
             {/* High profit */}
-            <div className="glass rounded-2xl p-5">
+            <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm">
-                <DollarSign className="w-4 h-4 text-emerald-400" /> สินค้ากำไรสูงสุด
+                <DollarSign className="w-4 h-4 text-success" /> สินค้ากำไรสูงสุด
               </h3>
               <div className="space-y-2">
                 {recs.high_profit?.map((p: any, i: number) => {
@@ -349,11 +350,11 @@ function InsightsContent() {
                     <div key={i} className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground truncate mr-2">{p.product_name}</span>
-                        <span className="text-emerald-400 font-bold shrink-0">{formatCurrency(p.profit)}</span>
+                        <span className="text-success font-bold shrink-0">{formatCurrency(p.profit)}</span>
                       </div>
-                      <div className="h-1 bg-white/[0.05] rounded-full overflow-hidden">
+                      <div className="h-1 bg-muted rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full"
+                          className="h-full bg-success rounded-full"
                           style={{ width: `${(p.profit / maxProfit) * 100}%` }}
                         />
                       </div>
@@ -364,17 +365,17 @@ function InsightsContent() {
             </div>
 
             {/* Promotions */}
-            <div className="glass rounded-2xl p-5">
+            <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm">
-                <Zap className="w-4 h-4 text-violet-400" /> ไอเดียโปรโมชัน
+                <Zap className="w-4 h-4 text-primary" /> ไอเดียโปรโมชัน
               </h3>
               <div className="space-y-3">
                 {recs.promotions?.map((p: any, i: number) => (
-                  <div key={i} className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <div key={i} className="p-3 rounded-xl bg-card border border-border">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={cn(
                         'text-[10px] px-2 py-0.5 rounded-full font-medium',
-                        p.type === 'BUNDLE' ? 'bg-violet-500/20 text-violet-300' : 'bg-cyan-500/20 text-cyan-300'
+                        p.type === 'BUNDLE' ? 'bg-primary/15 text-primary' : 'bg-success/15 text-success'
                       )}>
                         {p.type === 'BUNDLE' ? 'Bundle' : 'Promote'}
                       </span>
@@ -388,21 +389,21 @@ function InsightsContent() {
 
           {/* Discontinue warning */}
           {recs.discontinue?.length > 0 && (
-            <div className="glass rounded-2xl p-5">
+            <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm">
-                <TrendingDown className="w-4 h-4 text-rose-400" /> สินค้าแนะนำให้ระบาย / เลิกขาย
-                <span className="ml-auto text-xs bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full">
+                <TrendingDown className="w-4 h-4 text-danger" /> สินค้าแนะนำให้ระบาย / เลิกขาย
+                <span className="ml-auto text-xs bg-danger/15 text-danger px-2 py-0.5 rounded-full">
                   {recs.discontinue.length} รายการ
                 </span>
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {recs.discontinue.slice(0, 6).map((p: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between text-sm p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                  <div key={i} className="flex items-center justify-between text-sm p-3 rounded-lg bg-card border border-border">
                     <div>
                       <div className="font-medium">{p.product_name}</div>
                       <div className="text-xs text-muted-foreground mt-0.5">{p.reason}</div>
                     </div>
-                    <span className="text-xs bg-rose-500/20 text-rose-300 px-2 py-1 rounded-lg shrink-0 ml-2">
+                    <span className="text-xs bg-danger/15 text-danger px-2 py-1 rounded-lg shrink-0 ml-2">
                       {p.current_stock} ชิ้น
                     </span>
                   </div>

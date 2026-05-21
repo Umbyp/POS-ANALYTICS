@@ -70,14 +70,14 @@ function TodayStatsPanel({ storeId }: { storeId: string }) {
             value={formatCurrency(kpi?.revenue || 0)}
             sub={kpi?.vs_yesterday_pct != null ? `${kpi.vs_yesterday_pct > 0 ? '+' : ''}${kpi.vs_yesterday_pct.toFixed(1)}% vs เมื่อวาน` : ''}
             positive={kpi?.vs_yesterday_pct >= 0}
-            color="text-indigo-400"
+            color="text-primary"
           />
           <StatPill
             icon={<ShoppingBag className="w-4 h-4" />}
             label="ออเดอร์"
             value={`${kpi?.order_count || 0} รายการ`}
             sub="วันนี้"
-            color="text-violet-400"
+            color="text-primary"
           />
           <StatPill
             icon={<TrendingUp className="w-4 h-4" />}
@@ -85,7 +85,7 @@ function TodayStatsPanel({ storeId }: { storeId: string }) {
             value={formatCurrency(kpi30?.revenue || 0)}
             sub={`เติบโต ${kpi30?.revenue_growth?.toFixed(1) || 0}%`}
             positive={kpi30?.revenue_growth >= 0}
-            color="text-emerald-400"
+            color="text-success"
           />
           <StatPill
             icon={<Package className="w-4 h-4" />}
@@ -93,7 +93,7 @@ function TodayStatsPanel({ storeId }: { storeId: string }) {
             value={`${lowStockCount} รายการ`}
             sub={lowStockCount > 0 ? 'ต้องสั่งเพิ่ม' : 'ปกติ'}
             positive={lowStockCount === 0}
-            color={lowStockCount > 0 ? 'text-amber-400' : 'text-emerald-400'}
+            color={lowStockCount > 0 ? 'text-warning' : 'text-success'}
           />
         </div>
       )}
@@ -105,14 +105,14 @@ function StatPill({ icon, label, value, sub, positive, color }: {
   icon: React.ReactNode; label: string; value: string; sub?: string; positive?: boolean; color?: string;
 }) {
   return (
-    <div className="glass rounded-xl px-3 py-2.5 flex flex-col gap-0.5">
+    <div className="bg-card border border-border rounded-xl px-3 py-2.5 flex flex-col gap-0.5">
       <div className={`flex items-center gap-1.5 ${color || 'text-primary'}`}>
         {icon}
         <span className="text-xs text-muted-foreground truncate">{label}</span>
       </div>
       <div className="text-sm font-bold tabular-nums truncate">{value}</div>
       {sub && (
-        <div className={`text-xs flex items-center gap-0.5 ${positive === false ? 'text-red-400' : positive ? 'text-emerald-400' : 'text-muted-foreground'}`}>
+        <div className={`text-xs flex items-center gap-0.5 ${positive === false ? 'text-danger' : positive ? 'text-success' : 'text-muted-foreground'}`}>
           {positive === false ? <TrendingDown className="w-3 h-3" /> : positive ? <TrendingUp className="w-3 h-3" /> : null}
           {sub}
         </div>
@@ -195,9 +195,9 @@ function AssistantContent() {
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
-      <div className="glass border-b border-border/60 px-6 py-4 flex items-center justify-between shrink-0">
+      <div className="bg-card border-b border-border px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm">
             <Bot className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -231,7 +231,7 @@ function AssistantContent() {
             >
               {/* Empty state */}
               <div className="text-center mb-8">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-indigo-500/20">
+                <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4 shadow-md">
                   <Sparkles className="w-8 h-8 text-white" />
                 </div>
                 <h2 className="text-lg font-bold mb-1">ถามได้เลย!</h2>
@@ -248,9 +248,9 @@ function AssistantContent() {
                       <button
                         key={a.label}
                         onClick={() => send(a.q)}
-                        className="glass glass-hover rounded-xl p-3.5 text-left border border-border/40 hover:border-indigo-500/40 transition-all group"
+                        className="bg-card hover:bg-card-hover rounded-xl p-3.5 text-left border border-border hover:border-primary/40 transition-all group"
                       >
-                        <Icon className="w-4 h-4 text-indigo-400 mb-2 group-hover:scale-110 transition-transform" />
+                        <Icon className="w-4 h-4 text-primary mb-2 group-hover:scale-110 transition-transform" />
                         <div className="text-sm font-medium">{a.label}</div>
                         <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{a.q}</div>
                       </button>
@@ -268,7 +268,7 @@ function AssistantContent() {
                       <button
                         key={q}
                         onClick={() => send(q)}
-                        className="glass glass-hover rounded-full px-4 py-1.5 text-sm border border-border/40 hover:border-indigo-500/40 transition-all"
+                        className="bg-card hover:bg-card-hover rounded-full px-4 py-1.5 text-sm border border-border hover:border-primary/40 transition-all"
                       >
                         {q}
                       </button>
@@ -290,9 +290,7 @@ function AssistantContent() {
                   {/* Avatar */}
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
-                      m.role === 'user'
-                        ? 'bg-indigo-600'
-                        : 'bg-gradient-to-br from-indigo-500 to-violet-600 shadow-indigo-500/20'
+                      m.role === 'user' ? 'bg-foreground' : 'bg-primary'
                     }`}
                   >
                     {m.role === 'user'
@@ -306,23 +304,23 @@ function AssistantContent() {
                     <div
                       className={`rounded-2xl px-4 py-3 text-[14px] leading-relaxed shadow-sm ${
                         m.role === 'user'
-                          ? 'bg-indigo-600 text-white rounded-tr-sm'
-                          : 'glass border border-border/50 rounded-tl-sm'
+                          ? 'bg-foreground text-background rounded-tr-sm'
+                          : 'bg-card border border-border rounded-tl-sm'
                       }`}
                     >
                       {m.content ? (
                         m.role === 'user' ? (
                           <span>{m.content}</span>
                         ) : (
-                          <div className="prose prose-invert prose-sm prose-p:leading-relaxed prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-headings:text-sm prose-pre:bg-black/50 prose-pre:border prose-pre:border-border max-w-none">
+                          <div className="prose prose-sm prose-p:leading-relaxed prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-headings:text-sm prose-pre:bg-muted prose-pre:border prose-pre:border-border max-w-none">
                             <ReactMarkdown>{m.content}</ReactMarkdown>
                           </div>
                         )
                       ) : (
                         <div className="flex space-x-1.5 h-5 items-center">
-                          <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
                       )}
                     </div>
@@ -340,7 +338,7 @@ function AssistantContent() {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-border/60 bg-background/80 backdrop-blur-xl px-4 md:px-8 py-4 shrink-0">
+      <div className="border-t border-border bg-card px-4 md:px-8 py-4 shrink-0">
         <div className="max-w-2xl mx-auto">
           {/* Quick action chips while chatting */}
           {messages.length > 0 && (
@@ -352,9 +350,9 @@ function AssistantContent() {
                     key={a.label}
                     onClick={() => send(a.q)}
                     disabled={streaming}
-                    className="flex items-center gap-1.5 glass rounded-full px-3 py-1.5 text-xs whitespace-nowrap border border-border/40 hover:border-indigo-500/40 transition-all disabled:opacity-50 shrink-0"
+                    className="flex items-center gap-1.5 bg-card border border-border hover:border-primary/40 rounded-full px-3 py-1.5 text-xs whitespace-nowrap transition-all disabled:opacity-50 shrink-0"
                   >
-                    <Icon className="w-3 h-3 text-indigo-400" />
+                    <Icon className="w-3 h-3 text-primary" />
                     {a.label}
                   </button>
                 );
@@ -370,12 +368,12 @@ function AssistantContent() {
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send(input)}
               placeholder="เช่น ยอดขายวันนี้เท่าไหร่? พนักงานต้องทำอะไร?"
               disabled={streaming}
-              className="flex-1 bg-secondary/60 border border-border/60 rounded-2xl pl-5 pr-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40 transition-all shadow-sm disabled:opacity-50 placeholder:text-muted-foreground/60 resize-none"
+              className="flex-1 bg-input border border-border rounded-2xl pl-5 pr-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all shadow-sm disabled:opacity-50 placeholder:text-muted-foreground/60 resize-none"
             />
             <button
               onClick={() => send(input)}
               disabled={streaming || !input.trim()}
-              className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center disabled:opacity-40 hover:shadow-lg hover:shadow-indigo-500/20 transition-all hover:scale-105 shrink-0"
+              className="w-11 h-11 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 hover:bg-primary-600 transition-all shrink-0"
             >
               {streaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </button>

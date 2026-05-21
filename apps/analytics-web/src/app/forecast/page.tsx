@@ -34,7 +34,7 @@ function ForecastContent() {
       {/* Summary */}
       {revenue && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="glass rounded-2xl p-5">
+          <div className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <TrendingUp className="w-4 h-4" /> รายได้คาดการณ์ 30 วันข้างหน้า
             </div>
@@ -42,7 +42,7 @@ function ForecastContent() {
               {formatCurrency(revenue.total_predicted)}
             </div>
           </div>
-          <div className="glass rounded-2xl p-5">
+          <div className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <Clock className="w-4 h-4" /> ช่วงเวลาขายดีที่สุด
             </div>
@@ -59,30 +59,30 @@ function ForecastContent() {
       )}
 
       {/* Forecast chart */}
-      <div className="glass rounded-2xl p-5">
+      <div className="bg-card border border-border rounded-2xl p-5">
         <h3 className="font-semibold mb-4">พยากรณ์รายได้ (เส้นทึบ = จริง, พื้นที่ = ช่วงคาดการณ์)</h3>
         <ResponsiveContainer width="100%" height={360}>
           <ComposedChart data={series}>
             <defs>
               <linearGradient id="band" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22D3EE" stopOpacity={0.25} />
-                <stop offset="100%" stopColor="#22D3EE" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="#FF6B35" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#FF6B35" stopOpacity={0.02} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="date" tickFormatter={formatDate} stroke="#64748B" fontSize={11} />
-            <YAxis stroke="#64748B" fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+            <XAxis dataKey="date" tickFormatter={formatDate} stroke="#6B7280" fontSize={11} axisLine={false} tickLine={false} />
+            <YAxis stroke="#6B7280" fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
             <Tooltip
-              contentStyle={{ background: '#121A2B', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}
+              contentStyle={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 12, boxShadow: '0 4px 12px -2px rgba(0,0,0,0.08)' }}
               labelFormatter={formatDate}
               formatter={(v: any, name: any) => [formatCurrency(v), name]}
             />
             {firstForecast && (
-              <ReferenceLine x={firstForecast} stroke="#FBBF24" strokeDasharray="4 4" label={{ value: 'วันนี้', fill: '#FBBF24', fontSize: 10 }} />
+              <ReferenceLine x={firstForecast} stroke="#F59E0B" strokeDasharray="4 4" label={{ value: 'วันนี้', fill: '#F59E0B', fontSize: 10 }} />
             )}
             <Area dataKey="upper" stroke="none" fill="url(#band)" name="ขอบบน" />
-            <Area dataKey="lower" stroke="none" fill="#070B14" name="ขอบล่าง" />
-            <Line dataKey="predicted" stroke="#6366F1" strokeWidth={2} dot={false} name="คาดการณ์" />
+            <Area dataKey="lower" stroke="none" fill="#FFFFFF" name="ขอบล่าง" />
+            <Line dataKey="predicted" stroke="#FF6B35" strokeWidth={2} dot={false} name="คาดการณ์" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
