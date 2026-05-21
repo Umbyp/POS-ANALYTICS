@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html, body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'cv11', 'ss01', 'tnum';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Prose for AI chat — light mode */
+  .prose.prose-invert h1,
+  .prose.prose-invert h2,
+  .prose.prose-invert h3 {
+    @apply text-foreground font-semibold;
+    margin-top: 0.75em;
+    margin-bottom: 0.4em;
+  }
+  .prose.prose-invert p {
+    @apply text-foreground/90;
+    margin-top: 0.3em;
+    margin-bottom: 0.3em;
+  }
+  .prose.prose-invert ul, .prose.prose-invert ol {
+    @apply pl-4;
+    margin-top: 0.3em;
+    margin-bottom: 0.3em;
+  }
+  .prose.prose-invert li {
+    margin-top: 0.15em;
+    margin-bottom: 0.15em;
+  }
+  .prose.prose-invert strong {
+    @apply text-foreground font-semibold;
+  }
+  .prose.prose-invert code {
+    @apply bg-muted rounded px-1 py-0.5 text-xs text-primary;
+  }
+  .prose.prose-invert a {
+    @apply text-primary no-underline hover:underline;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 3px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #9CA3AF;
+  }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* Shimmer skeleton — light */
+.shimmer {
+  background: linear-gradient(90deg, #F3F4F6 0%, #E5E7EB 50%, #F3F4F6 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Bounce dots for streaming */
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: translateY(0); }
+  40%           { transform: translateY(-5px); }
+}
+.animate-bounce {
+  animation: bounce-dot 1.2s ease-in-out infinite;
+}
