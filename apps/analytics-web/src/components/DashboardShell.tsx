@@ -120,31 +120,37 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto scrollbar-thin">
+        <nav className="flex-1 px-2 py-2 overflow-y-auto scrollbar-thin">
           {(['now', 'customer', 'sales', 'grow', 'helper'] as const).map((group, gi) => (
-            <div key={group} className={gi === 0 ? '' : 'mt-4'}>
-              <p className="text-[10px] tracking-wider text-muted-foreground px-3 pb-1.5 font-medium uppercase">
-                {GROUP_LABELS[group]}
-              </p>
-              {NAV.filter((i) => i.group === group).map((item) => {
-                const Icon = item.icon;
-                const active = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
-                      active
-                        ? 'bg-primary text-white font-medium shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    )}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
+            <div key={group} className={gi === 0 ? '' : 'mt-5'}>
+              {/* Group header with divider */}
+              <div className="flex items-center gap-2 px-3 mb-1.5">
+                <p className="text-[11px] tracking-wide text-foreground/70 font-semibold whitespace-nowrap">
+                  {GROUP_LABELS[group]}
+                </p>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              <div className="space-y-0.5">
+                {NAV.filter((i) => i.group === group).map((item) => {
+                  const Icon = item.icon;
+                  const active = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                        active
+                          ? 'bg-primary text-white font-medium shadow-sm'
+                          : 'text-foreground/80 hover:text-foreground hover:bg-muted'
+                      )}
+                    >
+                      <Icon className={cn('w-4 h-4 shrink-0', active ? '' : 'text-muted-foreground')} />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </nav>
