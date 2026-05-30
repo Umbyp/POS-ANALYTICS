@@ -155,13 +155,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        {/* Footer */}
-        <div className="px-4 py-3 border-t border-border">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-            <span className="truncate">{activeStore?.name || 'กำลังโหลด...'}</span>
-          </div>
-        </div>
+        {/* Footer with health status */}
+        <ServiceStatusFooter activeStore={activeStore} storeId={storeId} />
       </aside>
 
       <main className="flex-1 overflow-y-auto scrollbar-thin min-w-0">
@@ -173,6 +168,61 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+/** Footer that pings the API every 30s and shows a live health indicator. */
+function ServiceStatusFooter({ activeStore, storeId }: { activeStore: any; storeId: string | null }) {
+  const { data: health, error } = useQuery({
+    queryKey: ['health', storeId],
+    queryFn: () =>
+      api
+        .get('/api/analytics/kpi', { params: { store_id: storeId, days: 30 } })
+        .then((r) => ({ ok: true, orders: r.data?.order_count || 0, revenue: r.data?.revenue || 0 })),
+    enabled: !!storeId,
+    refetchInterval: 30_000,
+    retry: 0,
+  });
+
+  const isUp = !!health?.ok;
+  const isDown = !!error;
+
+  return (
+    <div className="px-3 py-3 border-t border-border space-y-2">
+      <div className="flex items-center gap-2 text-xs">
+        <div
+          className={cn(
+            'w-1.5 h-1.5 rounded-full',
+            isUp ? 'bg-success animate-pulse' : isDown ? 'bg-danger' : 'bg-warning animate-pulse'
+          )}
+        />
+        <span className="truncate flex-1">
+          {isUp ? 'Connected' : isDown ? 'Service offline' : 'Connecting…'}
+        </span>
+      </div>
+      {isDown && (
+        <div className="rounded-md bg-danger/10 border border-danger/30 p-2 text-[10px] leading-relaxed text-danger">
+          analytics-api ไม่ตอบ — รัน:
+          <code className="block mt-1 bg-card px-1.5 py-1 rounded font-mono text-foreground/90 break-all">
+            cd apps/analytics-api &amp;&amp; uvicorn app.main:app --port 8000
+          </code>
+        </div>
+      )}
+      {isUp && health.orders > 0 && (
+        <div className="text-[10px] text-muted-foreground tabular-nums">
+          {health.orders.toLocaleString()} orders · 30 วัน
+        </div>
+      )}
+      {isUp && health.orders === 0 && (
+        <div className="rounded-md bg-warning/10 border border-warning/30 p-2 text-[10px] leading-relaxed">
+          ยังไม่มีข้อมูลออเดอร์ — รัน{' '}
+          <code className="bg-card px-1 rounded">npm run db:seed:mock</code> ใน apps/api
+        </div>
+      )}
+      <div className="text-[10px] text-muted-foreground truncate">
+        ร้าน: {activeStore?.name || '…'}
+      </div>
     </div>
   );
 }
