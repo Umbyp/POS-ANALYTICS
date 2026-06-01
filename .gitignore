@@ -3,5 +3,8 @@ node_modules/
 venv/
 __pycache__/
 *.pyc
+*.tsbuildinfo
 .env
 .env.local
+dist/
+build/

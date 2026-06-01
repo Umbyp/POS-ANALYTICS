@@ -1,0 +1,29 @@
+# Render Blueprint — Analytics API (FastAPI + pandas + Prophet)
+# วิธีใช้: Render Dashboard → New → Blueprint → เลือก repo นี้
+# แล้วกรอกค่า env ที่ sync:false ในหน้า dashboard
+#
+# PYTHON_VERSION 3.11 เพื่อให้ prophet/numpy/pandas มี prebuilt wheel ติดตั้งได้เร็ว
+# plan free จะ "หลับ" เมื่อไม่มีทราฟฟิก (cold start) — แนะนำ starter ถ้าต้องการให้พร้อมตลอด
+services:
+  - type: web
+    name: analytics-api
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: apps/analytics-api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash-lite
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

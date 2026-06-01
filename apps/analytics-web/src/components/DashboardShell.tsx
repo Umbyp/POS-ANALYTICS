@@ -5,51 +5,36 @@ import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
-  TrendingUp,
   Sparkles,
   Bot,
   ChevronDown,
   Store,
   Users,
-  ShoppingBasket,
   Grid2x2,
   ClipboardList,
   Tag,
-  FlaskConical,
-  Target,
-  LineChart,
 } from 'lucide-react';
 import { api, cn, getActiveStoreId, setActiveStoreId } from '@/lib/api';
 
+// 6 หน้าหลัก — ทุกหน้าเชื่อมฐานข้อมูลจริงและจำเป็นต่อการวิเคราะห์
+// (พยากรณ์ยอดขาย / เป้าหมาย / สรุปอัตโนมัติ ถูกรวมไว้ในหน้า "ภาพรวม" แล้ว)
 const NAV = [
-  // "วันนี้เป็นยังไง?"
+  // วันนี้เป็นยังไง
   { href: '/', label: 'ภาพรวม', icon: LayoutDashboard, group: 'now' },
   { href: '/playbook', label: 'ต้องทำวันนี้', icon: ClipboardList, group: 'now' },
 
-  // "ลูกค้าฉันเป็นยังไง?"
-  { href: '/customers', label: 'กลุ่มลูกค้า', icon: Users, group: 'customer' },
-  { href: '/cohort', label: 'การกลับมาซื้อซ้ำ', icon: LineChart, group: 'customer' },
-
-  // "ขายอะไรดี / เมนูไหนทำเงิน?"
-  { href: '/menu', label: 'เมนูไหนทำเงิน', icon: Grid2x2, group: 'sales' },
-  { href: '/basket', label: 'สินค้าที่ขายคู่กัน', icon: ShoppingBasket, group: 'sales' },
-
-  // "ทำยังไงให้ขายดีขึ้น?"
-  { href: '/promotions', label: 'แนะนำโปรโมชัน', icon: Tag, group: 'grow' },
-  { href: '/whatif', label: 'ลองคำนวณก่อนตัดสินใจ', icon: FlaskConical, group: 'grow' },
-  { href: '/forecast', label: 'พยากรณ์ยอดขาย', icon: TrendingUp, group: 'grow' },
-  { href: '/goal', label: 'ติดตามเป้าหมาย', icon: Target, group: 'grow' },
+  // วิเคราะห์เชิงลึก
+  { href: '/customers', label: 'กลุ่มลูกค้า', icon: Users, group: 'analyze' },
+  { href: '/menu', label: 'เมนูไหนทำเงิน', icon: Grid2x2, group: 'analyze' },
+  { href: '/promotions', label: 'แนะนำโปรโมชัน', icon: Tag, group: 'analyze' },
 
   // ผู้ช่วย
-  { href: '/insights', label: 'สรุปอัตโนมัติ', icon: Sparkles, group: 'helper' },
   { href: '/assistant', label: 'ถาม AI', icon: Bot, group: 'helper' },
 ];
 
 const GROUP_LABELS: Record<string, string> = {
   now: 'วันนี้เป็นยังไง',
-  customer: 'รู้จักลูกค้า',
-  sales: 'รู้จักเมนู',
-  grow: 'ทำยังไงให้ขายดีขึ้น',
+  analyze: 'วิเคราะห์เชิงลึก',
   helper: 'ผู้ช่วย',
 };
 
@@ -80,8 +65,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex bg-background">
       {/* Sidebar — light theme + orange accent */}
       <aside className="w-60 shrink-0 flex flex-col border-r border-border bg-card">
-        {/* Logo */}
-        <div className="px-5 py-5 flex items-center gap-2.5 border-b border-border">
+        {/* Logo — กดเพื่อกลับหน้าภาพรวม */}
+        <Link
+          href="/"
+          className="px-5 py-5 flex items-center gap-2.5 border-b border-border hover:bg-muted/50 transition-colors"
+        >
           <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-sm">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
@@ -91,37 +79,47 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               Business Intelligence
             </div>
           </div>
-        </div>
+        </Link>
 
-        {/* Store selector */}
+        {/* Store selector — only a dropdown when there's more than one branch.
+            For a single store we just show the name (read-only viewing, no setup). */}
         <div className="px-3 py-3 border-b border-border">
           <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 block px-1">
             ร้านที่ดู
           </label>
-          <div className="relative">
-            <Store className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-            <select
-              value={storeId || ''}
-              onChange={(e) => {
-                setStoreId(e.target.value);
-                setActiveStoreId(e.target.value);
-                window.location.reload();
-              }}
-              className="w-full bg-card border border-border rounded-lg pl-8 pr-7 py-2 text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-            >
-              {stores.map((s: any) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
-          </div>
+          {stores.length > 1 ? (
+            <div className="relative">
+              <Store className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <select
+                value={storeId || ''}
+                onChange={(e) => {
+                  setStoreId(e.target.value);
+                  setActiveStoreId(e.target.value);
+                  window.location.reload();
+                }}
+                className="w-full bg-card border border-border rounded-lg pl-8 pr-7 py-2 text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              >
+                {stores.map((s: any) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm">
+              <Store className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="truncate font-medium">
+                {activeStore?.name || stores[0]?.name || 'กำลังเชื่อมข้อมูล…'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Nav */}
         <nav className="flex-1 px-2 py-2 overflow-y-auto scrollbar-thin">
-          {(['now', 'customer', 'sales', 'grow', 'helper'] as const).map((group, gi) => (
+          {(['now', 'analyze', 'helper'] as const).map((group, gi) => (
             <div key={group} className={gi === 0 ? '' : 'mt-5'}>
               {/* Group header with divider */}
               <div className="flex items-center gap-2 px-3 mb-1.5">

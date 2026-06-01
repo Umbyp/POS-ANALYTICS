@@ -148,13 +148,13 @@ export default function MenuEngineeringPage() {
       profit_margin_pct: i.profit_margin ? (i.profit_margin * 100).toFixed(1) : '',
     }));
     const csv = rowsToCsv(rows, [
-      { label: 'ชื่อเมนู', value: (r) => r.name },
-      { label: 'กลุ่ม', value: (r) => r.quadrant },
-      { label: 'ควรทำ', value: (r) => r.action },
-      { label: 'ขาย (ชิ้น)', value: (r) => r.qty_sold },
-      { label: 'รายได้', value: (r) => r.revenue },
-      { label: 'กำไร', value: (r) => r.profit },
-      { label: 'อัตรากำไร (%)', value: (r) => r.profit_margin_pct },
+      { label: 'ชื่อเมนู', value: (r: any) => r.name },
+      { label: 'กลุ่ม', value: (r: any) => r.quadrant },
+      { label: 'ควรทำ', value: (r: any) => r.action },
+      { label: 'ขาย (ชิ้น)', value: (r: any) => r.qty_sold },
+      { label: 'รายได้', value: (r: any) => r.revenue },
+      { label: 'กำไร', value: (r: any) => r.profit },
+      { label: 'อัตรากำไร (%)', value: (r: any) => r.profit_margin_pct },
     ]);
     downloadCsv(`menu-engineering-${new Date().toISOString().slice(0, 10)}.csv`, csv);
   };

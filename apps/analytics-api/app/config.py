@@ -11,7 +11,6 @@ class Settings(BaseSettings):
     OPENROUTER_MODEL: str = "meta-llama/llama-3.3-70b-instruct"
     PORT: int = 8000
     CORS_ORIGINS: str = "http://localhost:3001"
-    LINE_NOTIFY_TOKEN: str = ""
 
     @property
     def cors_list(self) -> list[str]:

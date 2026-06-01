@@ -6,6 +6,23 @@
 
 ทั้งคู่ต้องรันพร้อมกัน
 
+> **ข้อมูลเชื่อมอัตโนมัติแล้ว** — analytics อ่านจาก **database ตัวเดียวกับ POS** โดยตรง
+> ทุกหน้าเป็น **read-only** (ดูอย่างเดียว ไม่มีการแก้ไข/นำเข้าข้อมูล) เจ้าของร้านแค่เปิดดู
+> ไม่ต้อง import / sync อะไรเลย ขอแค่ POS กับ analytics ชี้ไปที่ `DATABASE_URL` เดียวกัน
+
+## ⚡ วิธีที่ง่ายที่สุด (Windows) — คลิกเดียว
+
+ดับเบิลคลิกไฟล์ **`start-analytics.bat`** ที่ root ของ `pos-analytics`
+มันจะเปิดทั้ง 2 services ให้อัตโนมัติ แล้วเปิด browser ไปที่ http://localhost:3001 ให้เลย
+(ครั้งแรกต้อง setup venv + `npm install` ตาม step 1–2 ก่อน 1 ครั้ง)
+
+จาก POS ก็มีปุ่ม **Analytics · ดูข้อมูล** ที่ sidebar (เฉพาะ OWNER/ADMIN)
+กดแล้วเปิดหน้า analytics ในแท็บใหม่ — เจ้าของร้านไม่ต้องจำ URL
+
+---
+
+## วิธีรันแบบ manual (2 terminal)
+
 ## 0. Prerequisites
 
 - POS main system รันอยู่ (pos-system) — แชร์ DB เดียวกัน

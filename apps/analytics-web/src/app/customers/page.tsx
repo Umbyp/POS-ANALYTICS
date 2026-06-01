@@ -115,14 +115,14 @@ export default function CustomersPage() {
       points: c.points,
     }));
     const csv = rowsToCsv(rows, [
-      { label: 'ชื่อ', value: (r) => r.name },
-      { label: 'เบอร์โทร', value: (r) => r.phone },
-      { label: 'อีเมล', value: (r) => r.email },
-      { label: 'กลุ่ม', value: (r) => r.segment },
-      { label: 'มากี่ครั้ง', value: (r) => r.visits },
-      { label: 'ใช้จ่ายรวม', value: (r) => r.total_spent },
-      { label: 'มาล่าสุด (วันที่แล้ว)', value: (r) => r.last_visit_days_ago },
-      { label: 'แต้มสะสม', value: (r) => r.points },
+      { label: 'ชื่อ', value: (r: any) => r.name },
+      { label: 'เบอร์โทร', value: (r: any) => r.phone },
+      { label: 'อีเมล', value: (r: any) => r.email },
+      { label: 'กลุ่ม', value: (r: any) => r.segment },
+      { label: 'มากี่ครั้ง', value: (r: any) => r.visits },
+      { label: 'ใช้จ่ายรวม', value: (r: any) => r.total_spent },
+      { label: 'มาล่าสุด (วันที่แล้ว)', value: (r: any) => r.last_visit_days_ago },
+      { label: 'แต้มสะสม', value: (r: any) => r.points },
     ]);
     const segPart = selectedSeg ? `-${selectedSeg}` : '-all';
     downloadCsv(`customers${segPart}-${new Date().toISOString().slice(0, 10)}.csv`, csv);
