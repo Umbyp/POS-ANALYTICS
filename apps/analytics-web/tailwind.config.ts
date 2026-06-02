@@ -33,7 +33,9 @@ const config: Config = {
         danger: '#EF4444',
       },
       fontFamily: {
-        sans: ['Inter', 'IBM Plex Sans Thai', 'system-ui', 'sans-serif'],
+        // ใช้ CSS variable จาก next/font (ไม่งั้น font จะไม่ถูกใช้ → fallback เป็น font ระบบ)
+        sans: ['var(--font-inter)', 'var(--font-thai)', 'system-ui', 'sans-serif'],
+        thai: ['var(--font-thai)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         lg: '0.75rem',
