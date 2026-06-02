@@ -20,9 +20,9 @@ export function KpiCard({ label, value, change, sparkline }: KpiCardProps) {
   const TrendIcon = positive ? TrendingUp : negative ? TrendingDown : Minus;
 
   return (
-    <div className="bg-card border border-border rounded-lg p-5 flex flex-col">
+    <div className="bg-card border border-border rounded-xl p-5 flex flex-col shadow-card hover:shadow-card-hover transition-shadow">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
         {hasChange && (
           <div
             className={cn(

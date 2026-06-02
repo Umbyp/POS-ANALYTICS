@@ -13,7 +13,8 @@ const config: Config = {
         'card-hover': '#F9FAFB',
         'card-solid': '#FFFFFF',
         secondary: { DEFAULT: '#F3F4F6', foreground: '#111827' },
-        muted: { DEFAULT: '#F3F4F6', foreground: '#6B7280' },
+        // muted-foreground เข้มขึ้นเพื่ออ่านง่ายขึ้น (เดิม #6B7280 จางเกินบนพื้นสว่าง)
+        muted: { DEFAULT: '#F3F4F6', foreground: '#4B5563' },
         border: '#E5E7EB',
         input: '#FFFFFF',
         foreground: '#111827',
