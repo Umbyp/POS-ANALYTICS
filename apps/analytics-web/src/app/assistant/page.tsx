@@ -17,12 +17,12 @@ interface Message {
 }
 
 const QUICK_ACTIONS = [
-  { label: 'ยอดวันนี้', icon: DollarSign, q: 'วันนี้ยอดขายเป็นอย่างไร เทียบเมื่อวานด้วย' },
-  { label: 'สั่งสินค้า', icon: Package, q: 'สินค้าไหนต้องสั่งด่วนวันนี้?' },
-  { label: 'Task พนักงาน', icon: Users, q: 'พนักงานวันนี้ต้องทำอะไรบ้าง?' },
-  { label: 'วิเคราะห์ร้าน', icon: BarChart3, q: 'วิเคราะห์ธุรกิจและแนะนำว่าควรปรับอะไร?' },
-  { label: 'พยากรณ์', icon: TrendingUp, q: 'พยากรณ์รายได้เดือนหน้า' },
-  { label: 'ช่วงขายดี', icon: Clock, q: 'ช่วงเวลาไหนลูกค้าเยอะที่สุด?' },
+  { label: "Today's sales", icon: DollarSign, q: "How are today's sales? Compare with yesterday too." },
+  { label: 'What to reorder', icon: Package, q: 'Which products do I urgently need to reorder today?' },
+  { label: 'Staff tasks', icon: Users, q: 'What should the staff focus on today?' },
+  { label: 'Analyze store', icon: BarChart3, q: 'Analyze my business and suggest what to improve.' },
+  { label: 'Forecast', icon: TrendingUp, q: "Forecast next month's revenue." },
+  { label: 'Peak hours', icon: Clock, q: 'Which hours have the most customers?' },
 ];
 
 function TodayStatsPanel({ storeId }: { storeId: string }) {
@@ -46,11 +46,11 @@ function TodayStatsPanel({ storeId }: { storeId: string }) {
   return (
     <div className="border-b border-border/60 bg-background/60 backdrop-blur-xl px-6 py-4">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">สถานะวันนี้</span>
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Today&apos;s status</span>
         <button
           onClick={() => refetch()}
           className="text-muted-foreground hover:text-foreground transition-colors"
-          title="รีเฟรช"
+          title="Refresh"
         >
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
@@ -66,32 +66,32 @@ function TodayStatsPanel({ storeId }: { storeId: string }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatPill
             icon={<DollarSign className="w-4 h-4" />}
-            label="รายได้วันนี้"
+            label="Revenue today"
             value={formatCurrency(kpi?.revenue || 0)}
-            sub={kpi?.vs_yesterday_pct != null ? `${kpi.vs_yesterday_pct > 0 ? '+' : ''}${kpi.vs_yesterday_pct.toFixed(1)}% vs เมื่อวาน` : ''}
+            sub={kpi?.vs_yesterday_pct != null ? `${kpi.vs_yesterday_pct > 0 ? '+' : ''}${kpi.vs_yesterday_pct.toFixed(1)}% vs yesterday` : ''}
             positive={kpi?.vs_yesterday_pct >= 0}
             color="text-primary"
           />
           <StatPill
             icon={<ShoppingBag className="w-4 h-4" />}
-            label="ออเดอร์"
-            value={`${kpi?.order_count || 0} รายการ`}
-            sub="วันนี้"
+            label="Orders"
+            value={`${kpi?.order_count || 0} orders`}
+            sub="today"
             color="text-primary"
           />
           <StatPill
             icon={<TrendingUp className="w-4 h-4" />}
-            label="30 วัน (รายได้)"
+            label="30 days (revenue)"
             value={formatCurrency(kpi30?.revenue || 0)}
-            sub={`เติบโต ${kpi30?.revenue_growth?.toFixed(1) || 0}%`}
+            sub={`${kpi30?.revenue_growth?.toFixed(1) || 0}% growth`}
             positive={kpi30?.revenue_growth >= 0}
             color="text-success"
           />
           <StatPill
             icon={<Package className="w-4 h-4" />}
-            label="สต็อกใกล้หมด"
-            value={`${lowStockCount} รายการ`}
-            sub={lowStockCount > 0 ? 'ต้องสั่งเพิ่ม' : 'ปกติ'}
+            label="Low stock"
+            value={`${lowStockCount} items`}
+            sub={lowStockCount > 0 ? 'reorder needed' : 'OK'}
             positive={lowStockCount === 0}
             color={lowStockCount > 0 ? 'text-warning' : 'text-success'}
           />
@@ -179,7 +179,7 @@ function AssistantContent() {
         const next = [...prev];
         next[next.length - 1] = {
           role: 'assistant',
-          content: '⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ AI กรุณาลองใหม่',
+          content: '⚠️ Something went wrong connecting to the AI. Please try again.',
           timestamp: new Date(),
         };
         return next;
@@ -202,7 +202,7 @@ function AssistantContent() {
           </div>
           <div>
             <h1 className="text-base font-bold leading-tight">POS AI Assistant</h1>
-            <p className="text-xs text-muted-foreground">ข้อมูลจาก POS แบบ real-time</p>
+            <p className="text-xs text-muted-foreground">Real-time data from POS</p>
           </div>
         </div>
         {messages.length > 0 && (
@@ -210,7 +210,7 @@ function AssistantContent() {
             onClick={clearChat}
             className="text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-card transition-colors"
           >
-            ล้างการสนทนา
+            Clear chat
           </button>
         )}
       </div>
@@ -234,13 +234,13 @@ function AssistantContent() {
                 <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4 shadow-md">
                   <Sparkles className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-lg font-bold mb-1">ถามได้เลย!</h2>
-                <p className="text-muted-foreground text-sm">AI ดึงข้อมูลจาก POS วิเคราะห์ให้แบบ real-time</p>
+                <h2 className="text-lg font-bold mb-1">Ask anything!</h2>
+                <p className="text-muted-foreground text-sm">AI pulls live POS data and analyzes it for you in real time</p>
               </div>
 
               {/* Quick actions */}
               <div className="mb-6">
-                <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wider">คำถามยอดนิยม</p>
+                <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wider">Popular questions</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {QUICK_ACTIONS.map((a) => {
                     const Icon = a.icon;
@@ -262,7 +262,7 @@ function AssistantContent() {
               {/* More suggestions */}
               {suggestions.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wider">คำถามอื่นๆ</p>
+                  <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wider">More questions</p>
                   <div className="flex flex-wrap gap-2">
                     {suggestions.map((q: string) => (
                       <button
@@ -326,7 +326,7 @@ function AssistantContent() {
                     </div>
                     {m.timestamp && m.content && (
                       <span className={`text-[10px] text-muted-foreground px-1 ${m.role === 'user' ? 'text-right' : ''}`}>
-                        {m.timestamp.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                        {m.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
                   </div>
@@ -366,7 +366,7 @@ function AssistantContent() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send(input)}
-              placeholder="เช่น ยอดขายวันนี้เท่าไหร่? พนักงานต้องทำอะไร?"
+              placeholder="e.g. How are sales today? What should staff do?"
               disabled={streaming}
               className="flex-1 bg-input border border-border rounded-2xl pl-5 pr-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all shadow-sm disabled:opacity-50 placeholder:text-muted-foreground/60 resize-none"
             />

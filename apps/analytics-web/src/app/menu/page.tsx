@@ -9,7 +9,7 @@ import { PageIntro } from '@/components/PageIntro';
 import { InsightBanner, BannerAction } from '@/components/InsightBanner';
 import { rowsToCsv, downloadCsv } from '@/lib/export';
 
-// ใช้ภาษาที่เจ้าของร้านเข้าใจทันที — ไม่ใช้ Stars/Dogs/Puzzles
+// Plain-language labels instead of Stars/Dogs/Puzzles jargon
 const QUADRANT_META: Record<
   string,
   {
@@ -24,43 +24,43 @@ const QUADRANT_META: Record<
   }
 > = {
   Star: {
-    label: 'เมนูดาว',
+    label: 'Stars',
     color: 'text-success',
     bg: 'bg-success/10',
     border: 'border-success/40',
-    oneLine: 'กำไรดี + ขายดี',
-    action: 'เก็บไว้และโปรโมตเป็นเมนูแนะนำ — ติดป้าย "เมนูยอดนิยม" / โพสต์รูปสวยๆ บน social',
-    actionVerb: 'รักษา',
+    oneLine: 'High profit + sells well',
+    action: 'Keep and promote as a signature — tag it "Popular" / post nice photos on social',
+    actionVerb: 'Keep',
     icon: Crown,
   },
   Puzzle: {
-    label: 'มีศักยภาพ',
+    label: 'Potential',
     color: 'text-primary',
     bg: 'bg-primary/10',
     border: 'border-primary/40',
-    oneLine: 'กำไรดี แต่ขายน้อย',
-    action: 'push ให้คนรู้จัก — วางหน้าเมนู, ใส่ในเซ็ต Combo, ลด 10% ช่วงแรก',
-    actionVerb: 'โปรโมต',
+    oneLine: 'High profit but low sales',
+    action: 'Push awareness — feature it on the menu, add to combos, 10% off at first',
+    actionVerb: 'Promote',
     icon: TrendingUp,
   },
   Plowhorse: {
-    label: 'ขายดีแต่ไม่กำไร',
+    label: 'Sells well, low margin',
     color: 'text-warning',
     bg: 'bg-warning/10',
     border: 'border-warning/40',
-    oneLine: 'ขายดี + กำไรต่อชิ้นต่ำ',
-    action: 'ขึ้นราคา 5-10 บาท หรือลดต้นทุนวัตถุดิบ — ลูกค้าซื้ออยู่แล้ว ปรับนิดเพิ่มกำไรเยอะ',
-    actionVerb: 'ปรับราคา',
+    oneLine: 'High sales + low per-unit profit',
+    action: 'Raise price 5–10฿ or cut ingredient cost — customers already buy it, a small tweak adds a lot of profit',
+    actionVerb: 'Reprice',
     icon: Tag,
   },
   Dog: {
-    label: 'ตัดได้',
+    label: 'Drop candidates',
     color: 'text-danger',
     bg: 'bg-danger/10',
     border: 'border-danger/40',
-    oneLine: 'ขายน้อย + กำไรต่ำ',
-    action: 'พิจารณาตัดออก / rebrand — ลดความซับซ้อนของครัว + วัตถุดิบไม่หมดอายุค้าง',
-    actionVerb: 'พิจารณาตัด',
+    oneLine: 'Low sales + low profit',
+    action: 'Consider removing / rebranding — simplifies the kitchen and avoids expiring stock',
+    actionVerb: 'Consider dropping',
     icon: Trash2,
   },
 };
@@ -101,39 +101,39 @@ export default function MenuEngineeringPage() {
         .reduce((s, p) => s + (p.qty_sold || 0) * 5, 0); // 5 baht price bump x sold qty
       return {
         tone: 'warning' as const,
-        title: `มี ${plowhorses.length} เมนูขายดีแต่กำไรต่ำ`,
+        title: `${plowhorses.length} items sell well but have low margin`,
         description: (
           <>
-            ถ้าขึ้นราคา 5 บาทกับ 3 เมนูแรก (เริ่มจาก <strong>{topPlow.name}</strong>) อาจเพิ่มกำไรได้
-            ประมาณ <strong>{formatCurrency(potentialUplift)}/เดือน</strong> โดยไม่กระทบยอดขายมาก
+            Raising the price by 5฿ on the top 3 (starting with <strong>{topPlow.name}</strong>) could add about{' '}
+            <strong>{formatCurrency(potentialUplift)}/month</strong> in profit with little impact on sales.
           </>
         ),
-        metric: { label: 'รายได้เพิ่ม/เดือน', value: `+${formatCurrency(potentialUplift)}` },
+        metric: { label: 'Extra revenue/mo', value: `+${formatCurrency(potentialUplift)}` },
       };
     }
 
     if (dogs.length >= 3) {
       return {
         tone: 'critical' as const,
-        title: `มี ${dogs.length} เมนูไม่ทำเงิน`,
+        title: `${dogs.length} items aren't making money`,
         description:
-          'ขายไม่ออก + กำไรต่ำ — พิจารณาตัดออก หรือ rebrand เพื่อลดความซับซ้อนในครัว',
+          "Low sales + low profit — consider removing or rebranding them to simplify the kitchen.",
       };
     }
 
     if (puzzles.length >= 2) {
       return {
         tone: 'info' as const,
-        title: `มี ${puzzles.length} เมนูที่กำไรดีแต่คนยังไม่รู้จัก`,
+        title: `${puzzles.length} high-profit items few people know about`,
         description:
-          'ลองวางหน้าเมนู, โพสต์ social, ใส่ใน Combo — กำไรต่อจานสูง รอแค่คนเห็น',
+          'Feature them on the menu, post on social, add to combos — high profit per plate, they just need visibility.',
       };
     }
 
     return {
       tone: 'good' as const,
-      title: 'เมนูในร้านมี balance ดีอยู่แล้ว',
-      description: 'มีทั้งเมนูดาวและเมนูมีศักยภาพ — รักษาคุณภาพและสำรวจเทรนด์ใหม่ๆ',
+      title: 'Your menu is well balanced',
+      description: 'You have both star items and high-potential ones — keep the quality up and explore new trends.',
     };
   }, [items, grouped]);
 
@@ -148,13 +148,13 @@ export default function MenuEngineeringPage() {
       profit_margin_pct: i.profit_margin ? (i.profit_margin * 100).toFixed(1) : '',
     }));
     const csv = rowsToCsv(rows, [
-      { label: 'ชื่อเมนู', value: (r: any) => r.name },
-      { label: 'กลุ่ม', value: (r: any) => r.quadrant },
-      { label: 'ควรทำ', value: (r: any) => r.action },
-      { label: 'ขาย (ชิ้น)', value: (r: any) => r.qty_sold },
-      { label: 'รายได้', value: (r: any) => r.revenue },
-      { label: 'กำไร', value: (r: any) => r.profit },
-      { label: 'อัตรากำไร (%)', value: (r: any) => r.profit_margin_pct },
+      { label: 'Item', value: (r: any) => r.name },
+      { label: 'Group', value: (r: any) => r.quadrant },
+      { label: 'Action', value: (r: any) => r.action },
+      { label: 'Sold (units)', value: (r: any) => r.qty_sold },
+      { label: 'Revenue', value: (r: any) => r.revenue },
+      { label: 'Profit', value: (r: any) => r.profit },
+      { label: 'Margin (%)', value: (r: any) => r.profit_margin_pct },
     ]);
     downloadCsv(`menu-engineering-${new Date().toISOString().slice(0, 10)}.csv`, csv);
   };
@@ -163,15 +163,15 @@ export default function MenuEngineeringPage() {
     return (
       <div className="p-6 space-y-5 max-w-screen-xl">
         <PageIntro
-          title="เมนูไหนทำเงิน"
-          whatItTells="ดูเมนูแต่ละตัวว่าขายดี + ทำกำไรหรือไม่"
+          title="Menu performance"
+          whatItTells="See which items sell well and which actually make money"
           howToUse={[]}
         />
         <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
           <div className="text-sm">
-            <div className="font-medium">เชื่อมต่อ Analytics service ไม่ได้</div>
-            <div className="text-muted-foreground mt-1">รัน analytics-api ที่ port 8000 ก่อน</div>
+            <div className="font-medium">Can&apos;t connect to the Analytics service</div>
+            <div className="text-muted-foreground mt-1">Start analytics-api on port 8000 first</div>
           </div>
         </div>
       </div>
@@ -181,17 +181,17 @@ export default function MenuEngineeringPage() {
   return (
     <div className="p-6 space-y-5 max-w-screen-xl">
       <PageIntro
-        title="เมนูไหนทำเงิน"
-        whatItTells="แบ่งเมนูทุกตัวเป็น 4 กลุ่ม จาก 2 มิติ: ขายดีหรือไม่ + กำไรเยอะหรือไม่ — รู้ทันทีว่าควรทำอะไรกับเมนูไหน"
+        title="Menu performance"
+        whatItTells="Splits every item into 4 groups by 2 axes — sells well or not, and high profit or not — so you instantly know what to do with each"
         howToUse={[
-          'ดูข้อแนะนำในกล่องด้านบน — บอกว่าควรเริ่มจากไหน',
-          'เปิดกลุ่ม "ขายดีแต่ไม่กำไร" — ขึ้นราคา 5-10 บาทมัก work',
-          'กลุ่ม "มีศักยภาพ" → จัดโปรหรือวางหน้าเมนูให้เห็น',
-          'Export CSV เอาไปประชุมหรือ share กับทีมครัวได้',
+          'Read the tip box above — it tells you where to start',
+          'Open the "Sells well, low margin" group — a 5–10฿ price bump usually works',
+          'For the "Potential" group → run a promo or feature it on the menu',
+          'Export CSV to bring to a meeting or share with the kitchen team',
         ]}
-        tip={`วิเคราะห์จากยอดขาย 30 วันล่าสุด · เมนูที่ขายเกิน ${
+        tip={`Based on the last 30 days of sales · items selling more than ${
           summary.pop_threshold?.toFixed(0) || '?'
-        } ชิ้น = "ขายดี"`}
+        } units = "sells well"`}
       />
 
       {/* Loading skeleton */}
@@ -217,11 +217,11 @@ export default function MenuEngineeringPage() {
             <>
               <Link href="/promotions">
                 <BannerAction>
-                  <Tag className="w-3.5 h-3.5" /> สร้างโปรโมชัน
+                  <Tag className="w-3.5 h-3.5" /> Create promotion
                 </BannerAction>
               </Link>
               <BannerAction variant="outline" onClick={exportAll}>
-                <Download className="w-3.5 h-3.5" /> Export ทั้งหมด
+                <Download className="w-3.5 h-3.5" /> Export all
               </BannerAction>
             </>
           }
@@ -268,7 +268,7 @@ export default function MenuEngineeringPage() {
                   </div>
                 </div>
                 <span className="text-xs tabular-nums text-muted-foreground">
-                  {list.length} เมนู
+                  {list.length} items
                 </span>
               </div>
 
@@ -279,7 +279,7 @@ export default function MenuEngineeringPage() {
 
               {list.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-6 text-center">
-                  ไม่มีเมนูในกลุ่มนี้
+                  No items in this group
                 </p>
               ) : (
                 <div className="space-y-1 max-h-80 overflow-y-auto scrollbar-thin">
@@ -295,7 +295,7 @@ export default function MenuEngineeringPage() {
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium truncate">{item.name}</div>
                           <div className="text-[10px] text-muted-foreground tabular-nums">
-                            ขาย {item.qty_sold}× · {formatCurrency(item.revenue || 0)}
+                            Sold {item.qty_sold}× · {formatCurrency(item.revenue || 0)}
                           </div>
                         </div>
                         <div className="text-right shrink-0">
@@ -325,7 +325,7 @@ export default function MenuEngineeringPage() {
             onClick={exportAll}
             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
           >
-            <Download className="w-3.5 h-3.5" /> Export CSV ทั้งหมด ({items.length} เมนู)
+            <Download className="w-3.5 h-3.5" /> Export all to CSV ({items.length} items)
           </button>
         </div>
       )}

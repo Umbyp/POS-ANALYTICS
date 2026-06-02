@@ -23,31 +23,31 @@ const TYPE_META: Record<
   { label: string; icon: any; color: string; bg: string }
 > = {
   BUNDLE: {
-    label: 'จัดเซต / Combo',
+    label: 'Bundle / Combo',
     icon: ShoppingBasket,
     color: 'text-primary',
     bg: 'bg-primary/10 border-primary/30',
   },
   HAPPY_HOUR: {
-    label: 'ลดราคาช่วงเวลา',
+    label: 'Happy hour',
     icon: Clock,
     color: 'text-warning',
     bg: 'bg-warning/10 border-warning/30',
   },
   WINBACK: {
-    label: 'ดึงลูกค้าเก่ากลับ',
+    label: 'Win back customers',
     icon: UserPlus,
     color: 'text-danger',
     bg: 'bg-danger/10 border-danger/30',
   },
   PRICE_UP: {
-    label: 'ขึ้นราคา',
+    label: 'Price increase',
     icon: TrendingUp,
     color: 'text-success',
     bg: 'bg-success/10 border-success/30',
   },
   PROMOTE: {
-    label: 'โปรโมตเมนู',
+    label: 'Promote item',
     icon: Sparkles,
     color: 'text-primary',
     bg: 'bg-primary/10 border-primary/30',
@@ -76,22 +76,22 @@ export default function PromotionsPage() {
   const copyConfig = async (config: any) => {
     const json = JSON.stringify(config, null, 2);
     const ok = await copyToClipboard(json);
-    if (ok) showToast('คัดลอกค่าโปรโมชันแล้ว');
+    if (ok) showToast('Promotion config copied');
   };
 
   if (error) {
     return (
       <div className="p-6 space-y-5 max-w-4xl">
         <PageIntro
-          title="แนะนำโปรโมชัน"
-          whatItTells="AI ดูข้อมูลร้านคุณ แล้วเสนอโปรโมชันที่น่าจะได้ผล"
+          title="Promotion ideas"
+          whatItTells="AI reviews your store data and suggests promotions likely to work"
           howToUse={[]}
         />
         <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
           <div className="text-sm">
-            <div className="font-medium">เชื่อมต่อ Analytics service ไม่ได้</div>
-            <div className="text-muted-foreground mt-1">รัน analytics-api ที่ port 8000 ก่อน</div>
+            <div className="font-medium">Can&apos;t connect to the Analytics service</div>
+            <div className="text-muted-foreground mt-1">Start analytics-api on port 8000 first</div>
           </div>
         </div>
       </div>
@@ -101,14 +101,14 @@ export default function PromotionsPage() {
   return (
     <div className="p-6 space-y-5 max-w-4xl">
       <PageIntro
-        title="แนะนำโปรโมชัน"
-        whatItTells="AI ดูข้อมูลร้านคุณแล้วเสนอโปรโมชันที่คิดว่าจะได้ผล — พร้อมเหตุผลและคาดการณ์ผลลัพธ์"
+        title="Promotion ideas"
+        whatItTells="AI reviews your store data and suggests promotions likely to work — with the reasoning and expected impact"
         howToUse={[
-          'อ่านโปรที่แนะนำ → คลิก "ดูวิธีตั้งค่า" → ก๊อปค่า JSON',
-          'ไปที่ POS Settings → Promotions → สร้างโปรใหม่ตามค่าที่ก๊อป',
-          'ลองเปิดทีละ 1-2 โปร ดูยอดเทียบสัปดาห์ก่อน-หลัง',
+          'Read a suggestion → click "How to set it up" → copy the JSON config',
+          'Go to POS Settings → Promotions → create a new promotion from the copied values',
+          'Try one or two at a time, then compare sales week-over-week',
         ]}
-        tip="ระบบใช้ข้อมูลขายจริงของร้าน — ยิ่งเก็บข้อมูลนาน คำแนะนำยิ่งแม่นยำ"
+        tip="Uses your real sales data — the longer you collect, the sharper the suggestions"
       />
 
       {isLoading && (
@@ -122,10 +122,10 @@ export default function PromotionsPage() {
       {!isLoading && suggestions.length === 0 && (
         <div className="bg-card border border-border rounded-lg p-10 text-center">
           <Sparkles className="w-10 h-10 mx-auto text-muted-foreground/40 mb-3" />
-          <div className="font-medium mb-1">ยังไม่พบโปรที่แนะนำ</div>
+          <div className="font-medium mb-1">No suggestions yet</div>
           <div className="text-sm text-muted-foreground max-w-md mx-auto">
-            ระบบต้องการข้อมูลขายอย่างน้อย 2-4 สัปดาห์ ลองเก็บข้อมูลเพิ่ม
-            หรือกลับมาดูใหม่หลังจากร้านเปิดมาสักพัก
+            Needs at least 2–4 weeks of sales data. Keep collecting,
+            or check back once the store has been running for a while.
           </div>
         </div>
       )}
@@ -163,13 +163,13 @@ export default function PromotionsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                   <div>
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                      ทำไมถึงแนะนำ
+                      Why recommended
                     </div>
                     <div className="text-sm leading-relaxed">{s.reason}</div>
                   </div>
                   <div>
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                      คาดว่าจะได้ผล
+                      Expected impact
                     </div>
                     <div className="text-sm text-success font-medium">{s.estimated_impact}</div>
                   </div>
@@ -183,7 +183,7 @@ export default function PromotionsPage() {
                         onClick={() => copyConfig(s.config)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary-600 text-xs font-medium"
                       >
-                        <Copy className="w-3.5 h-3.5" /> ก๊อปค่าโปรโมชัน
+                        <Copy className="w-3.5 h-3.5" /> Copy config
                       </button>
                       <button
                         onClick={() => setExpanded(isOpen ? null : i)}
@@ -192,7 +192,7 @@ export default function PromotionsPage() {
                         <ChevronDown
                           className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                         />
-                        ดูวิธีตั้งค่า
+                        How to set it up
                       </button>
                     </>
                   )}
@@ -204,26 +204,26 @@ export default function PromotionsPage() {
                 <div className="border-t border-border bg-muted/30 p-5 space-y-3">
                   <div>
                     <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
-                      ขั้นตอนใช้งาน
+                      Steps
                     </div>
                     <ol className="text-sm space-y-1.5 list-decimal list-inside leading-relaxed">
-                      <li>เปิด POS → Settings → Promotions</li>
-                      <li>กด "เพิ่มโปรโมชันใหม่"</li>
-                      <li>กรอกค่าตามด้านล่าง (ก๊อปแต่ละช่องจาก JSON ได้)</li>
-                      <li>Save แล้วทดสอบที่หน้า POS</li>
+                      <li>Open POS → Settings → Promotions</li>
+                      <li>Click &quot;Add promotion&quot;</li>
+                      <li>Fill in the values below (copy each field from the JSON)</li>
+                      <li>Save, then test it on the POS screen</li>
                     </ol>
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                        ค่าที่ต้องใส่
+                        Values to enter
                       </div>
                       <button
                         onClick={() => copyConfig(s.config)}
                         className="text-[11px] text-primary hover:underline flex items-center gap-1"
                       >
-                        <Copy className="w-3 h-3" /> ก๊อป
+                        <Copy className="w-3 h-3" /> Copy
                       </button>
                     </div>
                     <pre className="text-[11px] bg-card border border-border rounded-md p-3 overflow-x-auto font-mono">

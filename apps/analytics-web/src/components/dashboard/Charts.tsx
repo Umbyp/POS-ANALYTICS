@@ -7,7 +7,7 @@ import { formatCurrency, formatDate } from '@/lib/api';
 export function RevenueChart({ data }: { data: any[] }) {
   return (
     <div className="bg-card border border-border rounded-lg p-5">
-      <h3 className="text-sm font-medium mb-4">แนวโน้มรายได้</h3>
+      <h3 className="text-sm font-medium mb-4">Revenue trend</h3>
       <ResponsiveContainer width="100%" height={260}>
         <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: -10 }}>
           <defs>
@@ -41,7 +41,7 @@ export function RevenueChart({ data }: { data: any[] }) {
               boxShadow: '0 4px 12px -2px rgba(0,0,0,0.08)',
             }}
             labelFormatter={formatDate}
-            formatter={(v: any) => [formatCurrency(v), 'รายได้']}
+            formatter={(v: any) => [formatCurrency(v), 'Revenue']}
           />
           <Area
             type="monotone"
@@ -57,7 +57,7 @@ export function RevenueChart({ data }: { data: any[] }) {
 }
 
 // Heatmap
-const DOW = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 export function SalesHeatmap({ data }: { data: any[] }) {
   const max = Math.max(...data.map((d) => d.orders), 1);
@@ -71,7 +71,7 @@ export function SalesHeatmap({ data }: { data: any[] }) {
 
   return (
     <div className="bg-card border border-border rounded-lg p-5">
-      <h3 className="text-sm font-medium mb-4">ช่วงเวลาขายดี</h3>
+      <h3 className="text-sm font-medium mb-4">Peak hours</h3>
       <div className="overflow-x-auto scrollbar-thin">
         <table className="w-full">
           <thead>
@@ -103,7 +103,7 @@ export function SalesHeatmap({ data }: { data: any[] }) {
                               ? '#F3F4F6'
                               : `rgba(255, 107, 53, ${0.15 + intensity * 0.75})`,
                         }}
-                        title={`${DOW[dow]} ${h}:00 — ${val} ออเดอร์`}
+                        title={`${DOW[dow]} ${h}:00 — ${val} orders`}
                       />
                     </td>
                   );
@@ -121,7 +121,7 @@ export function TopProductsCard({ data }: { data: any[] }) {
   const maxRev = Math.max(...data.map((d) => d.revenue), 1);
   return (
     <div className="bg-card border border-border rounded-lg p-5">
-      <h3 className="text-sm font-medium mb-4">สินค้าขายดี</h3>
+      <h3 className="text-sm font-medium mb-4">Top products</h3>
       <div className="space-y-3">
         {data.slice(0, 8).map((p, i) => (
           <div key={p.id}>

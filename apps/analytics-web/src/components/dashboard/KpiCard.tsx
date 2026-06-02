@@ -48,7 +48,7 @@ export function KpiCard({ label, value, change, sparkline }: KpiCardProps) {
       )}
 
       {hasChange && (
-        <div className="text-[10px] text-muted-foreground mt-1.5">vs ช่วงก่อน</div>
+        <div className="text-[10px] text-muted-foreground mt-1.5">vs previous period</div>
       )}
     </div>
   );

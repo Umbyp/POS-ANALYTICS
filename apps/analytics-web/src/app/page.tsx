@@ -23,8 +23,8 @@ function TodayBanner({ storeId }: { storeId: string }) {
   });
 
   const now = new Date();
-  const thaiDay = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'][now.getDay()];
-  const dateStr = `วัน${thaiDay} ${now.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+  const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
+  const dateStr = `${dayName}, ${now.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`;
   const lowStockCount = inv.filter((i: any) => i.days_until_out != null && i.days_until_out <= 7).length;
   const criticalCount = inv.filter((i: any) => i.days_until_out != null && i.days_until_out <= 3).length;
 
@@ -39,7 +39,7 @@ function TodayBanner({ storeId }: { storeId: string }) {
             Real-time
           </div>
           <h2 className="text-base font-medium">{dateStr}</h2>
-          <p className="text-[11px] text-muted-foreground mt-0.5">อัปเดตทุก 1 นาที</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Updates every minute</p>
         </div>
 
         {/* Stats row */}
@@ -50,25 +50,25 @@ function TodayBanner({ storeId }: { storeId: string }) {
         ) : (
           <div className="flex flex-wrap gap-3">
             <TodayStatChip
-              label="รายได้วันนี้"
+              label="Revenue today"
               value={formatCurrency(kpiToday?.revenue || 0)}
               change={growth}
             />
             <TodayStatChip
-              label="ออเดอร์วันนี้"
-              value={`${kpiToday?.order_count || 0} รายการ`}
+              label="Orders today"
+              value={`${kpiToday?.order_count || 0} orders`}
               change={kpiToday?.yesterday_orders
                 ? Math.round(((kpiToday.order_count - kpiToday.yesterday_orders) / kpiToday.yesterday_orders) * 100)
                 : undefined}
             />
             <TodayStatChip
-              label="เฉลี่ยต่อบิล"
+              label="Avg / bill"
               value={formatCurrency(kpiToday?.avg_ticket || 0)}
             />
             {criticalCount > 0 && (
               <TodayStatChip
-                label="สต็อกวิกฤต"
-                value={`${criticalCount} รายการ`}
+                label="Critical stock"
+                value={`${criticalCount} items`}
                 alert
               />
             )}
@@ -81,8 +81,8 @@ function TodayBanner({ storeId }: { storeId: string }) {
         <div className="bg-warning/10 border-t border-warning/30 px-5 py-2.5 flex items-center gap-2">
           <Package className="w-3.5 h-3.5 text-warning shrink-0" />
           <span className="text-xs text-warning">
-            มีสินค้า <strong>{lowStockCount} รายการ</strong> ที่จะหมดภายใน 7 วัน —{' '}
-            <a href="/assistant" className="underline">ถาม AI ว่าต้องสั่งอะไร</a>
+            <strong>{lowStockCount} item(s)</strong> will run out within 7 days —{' '}
+            <a href="/assistant" className="underline">ask AI what to reorder</a>
           </span>
         </div>
       )}
@@ -102,7 +102,7 @@ function TodayStatChip({ label, value, change, alert }: { label: string; value: 
       {change !== undefined && (
         <div className={cn('text-[10px] mt-0.5 tabular-nums', isUp ? 'text-success' : 'text-danger')}>
           {isUp ? '+' : ''}{change.toFixed(1)}%
-          <span className="text-muted-foreground ml-1">vs เมื่อวาน</span>
+          <span className="text-muted-foreground ml-1">vs yesterday</span>
         </div>
       )}
     </div>
@@ -128,9 +128,9 @@ function GoalStrip({ storeId }: { storeId: string }) {
     <div className="bg-card border border-border rounded-lg p-5">
       <div className="flex items-center gap-2 mb-3">
         <Target className={cn('w-4 h-4', onTrack ? 'text-success' : 'text-warning')} />
-        <h3 className="text-sm font-medium">เป้าเดือนนี้</h3>
+        <h3 className="text-sm font-medium">This month&apos;s goal</h3>
         <span className="text-[11px] text-muted-foreground">
-          ผ่านมา {data.days_passed}/{data.days_in_month} วัน · เหลือ {data.days_left} วัน
+          {data.days_passed}/{data.days_in_month} days in · {data.days_left} left
         </span>
         <span className={cn('ml-auto text-lg font-semibold tabular-nums', onTrack ? 'text-success' : 'text-warning')}>
           {data.progress_pct.toFixed(0)}%
@@ -145,14 +145,14 @@ function GoalStrip({ storeId }: { storeId: string }) {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-        <GoalStat label="ทำได้แล้ว" value={formatCurrency(data.actual)} />
-        <GoalStat label="เป้า" value={formatCurrency(data.target)} muted />
+        <GoalStat label="Achieved" value={formatCurrency(data.actual)} />
+        <GoalStat label="Target" value={formatCurrency(data.target)} muted />
         <GoalStat
-          label="ต้องขายเพิ่ม/วัน"
+          label="Needed / day"
           value={formatCurrency(data.needed_daily)}
           accent={onTrack ? 'text-success' : 'text-warning'}
         />
-        <GoalStat label="คาดสิ้นเดือน" value={formatCurrency(data.projected_total)} />
+        <GoalStat label="Projected" value={formatCurrency(data.projected_total)} />
       </div>
     </div>
   );
@@ -191,27 +191,27 @@ function ForecastSection({ storeId }: { storeId: string }) {
     <div className="space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <FcCard
-          label="รายได้คาดการณ์ 30 วันข้างหน้า"
+          label="Forecast revenue (next 30 days)"
           icon={<TrendingUp className="w-4 h-4" />}
           loading={revLoading}
           value={revenue ? formatCurrency(revenue.total_predicted || 0) : null}
           accent="text-primary"
-          sub={revenue?.total_predicted ? `≈ ${formatCurrency((revenue.total_predicted || 0) / 30)}/วัน` : undefined}
+          sub={revenue?.total_predicted ? `≈ ${formatCurrency((revenue.total_predicted || 0) / 30)}/day` : undefined}
         />
         <FcCard
-          label="ข้อมูลย้อนหลังที่ใช้"
+          label="History used"
           icon={<Calendar className="w-4 h-4" />}
           loading={revLoading}
-          value={actualPoints > 0 ? `${actualPoints} วัน` : null}
-          sub={actualPoints < 14 ? 'น้อยไป — ผลอาจไม่แม่น' : actualPoints < 30 ? 'ดีพอใช้' : 'ข้อมูลพอแล้ว'}
+          value={actualPoints > 0 ? `${actualPoints} days` : null}
+          sub={actualPoints < 14 ? 'Too little — may be inaccurate' : actualPoints < 30 ? 'Decent' : 'Enough data'}
         />
         <FcCard
-          label="ช่วงเวลาขายดีที่สุด"
+          label="Busiest hours"
           icon={<Clock className="w-4 h-4" />}
           loading={peakLoading}
           value={peak?.peak_hours?.length ? peak.peak_hours.map((p: any) => `${p.hour}:00`).join(', ') : null}
           accent="text-success"
-          sub={peak?.peak_hours?.length ? `รวม ${peak.peak_hours.reduce((s: number, p: any) => s + p.orders, 0)} ออเดอร์` : undefined}
+          sub={peak?.peak_hours?.length ? `${peak.peak_hours.reduce((s: number, p: any) => s + p.orders, 0)} orders total` : undefined}
         />
       </div>
 
@@ -219,16 +219,16 @@ function ForecastSection({ storeId }: { storeId: string }) {
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <div>
             <h3 className="font-medium flex items-center gap-2 text-sm">
-              <Sparkles className="w-4 h-4 text-primary" /> พยากรณ์รายได้ 30 วันข้างหน้า
+              <Sparkles className="w-4 h-4 text-primary" /> Revenue forecast — next 30 days
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              เส้นทึบ = ยอดจริง · เส้นประส้ม = คาดการณ์
+              Solid line = actual · orange dashed = forecast
             </p>
           </div>
           {series.length > 0 && (
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <FcLegend color="#FF6B35" label="คาดการณ์" />
-              <FcLegend color="#FED7AA" label="ช่วงเชื่อมั่น" />
+              <FcLegend color="#FF6B35" label="Forecast" />
+              <FcLegend color="#FED7AA" label="Confidence band" />
             </div>
           )}
         </div>
@@ -238,9 +238,9 @@ function ForecastSection({ storeId }: { storeId: string }) {
         ) : series.length === 0 ? (
           <div className="h-[320px] flex flex-col items-center justify-center text-center px-6">
             <Sparkles className="w-10 h-10 text-muted-foreground/40 mb-3" />
-            <div className="font-medium mb-1">ยังไม่มีข้อมูลพอจะพยากรณ์</div>
+            <div className="font-medium mb-1">Not enough data to forecast yet</div>
             <div className="text-xs text-muted-foreground max-w-sm">
-              ต้องมีออเดอร์อย่างน้อย 7-14 วันที่ผ่านมา ตอนนี้มี {actualPoints} วัน
+              Need at least 7–14 days of orders; currently {actualPoints} days
             </div>
           </div>
         ) : (
@@ -286,20 +286,20 @@ function ForecastSection({ storeId }: { storeId: string }) {
                   x={firstForecast}
                   stroke="#F59E0B"
                   strokeDasharray="4 4"
-                  label={{ value: 'วันนี้', fill: '#F59E0B', fontSize: 10, position: 'top' }}
+                  label={{ value: 'Today', fill: '#F59E0B', fontSize: 10, position: 'top' }}
                 />
               )}
-              <Area dataKey="upper" stroke="none" fill="url(#band)" name="ขอบบน" />
-              <Area dataKey="lower" stroke="none" fill="#FFFFFF" name="ขอบล่าง" />
-              <Line dataKey="actual" stroke="#0F172A" strokeWidth={2} dot={false} name="ยอดจริง" connectNulls />
-              <Line dataKey="predicted" stroke="#FF6B35" strokeWidth={2} dot={false} name="คาดการณ์" strokeDasharray="4 4" />
+              <Area dataKey="upper" stroke="none" fill="url(#band)" name="Upper" />
+              <Area dataKey="lower" stroke="none" fill="#FFFFFF" name="Lower" />
+              <Line dataKey="actual" stroke="#0F172A" strokeWidth={2} dot={false} name="Actual" connectNulls />
+              <Line dataKey="predicted" stroke="#FF6B35" strokeWidth={2} dot={false} name="Forecast" strokeDasharray="4 4" />
             </ComposedChart>
           </ResponsiveContainer>
         )}
 
         {series.length > 0 && (
           <div className="mt-4 pt-3 border-t border-border text-xs text-muted-foreground">
-            ข้อมูลย้อนหลัง {actualPoints} วัน · พยากรณ์ {forecastPoints} วันข้างหน้า
+            {actualPoints} days history · {forecastPoints} days forecast
           </div>
         )}
       </div>
@@ -358,7 +358,7 @@ function InsightsPanel({ storeId }: { storeId: string }) {
     <div className="bg-card border border-border rounded-lg p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary" /> สรุปอัตโนมัติ
+          <Sparkles className="w-4 h-4 text-primary" /> Auto insights
         </h3>
         <button
           onClick={() => generate.mutate()}
@@ -370,7 +370,7 @@ function InsightsPanel({ storeId }: { storeId: string }) {
           ) : (
             <RefreshCw className="w-3 h-3" />
           )}
-          วิเคราะห์ใหม่
+          Re-analyze
         </button>
       </div>
       {isLoading ? (
@@ -379,7 +379,7 @@ function InsightsPanel({ storeId }: { storeId: string }) {
         </div>
       ) : insights.length === 0 ? (
         <div className="text-sm text-muted-foreground py-8 text-center">
-          ยังไม่มีสรุป — กด <b>วิเคราะห์ใหม่</b> เพื่อให้ AI สรุปจุดเด่น/จุดที่ต้องระวัง
+          No insights yet — tap <b>Re-analyze</b> to have AI summarize the highlights and things to watch
         </div>
       ) : (
         <div className="space-y-2">
@@ -417,14 +417,14 @@ function DashboardContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">ภาพรวม</h1>
-          <p className="text-muted-foreground text-xs mt-0.5">สรุปธุรกิจวันนี้ + 30 วันล่าสุด + พยากรณ์ล่วงหน้า</p>
+          <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
+          <p className="text-muted-foreground text-xs mt-0.5">Today&apos;s snapshot + last 30 days + forecast ahead</p>
         </div>
         <a
           href="/assistant"
           className="px-3 py-1.5 text-xs border border-border bg-card hover:bg-card-hover rounded-md transition-colors"
         >
-          ถาม AI →
+          Ask AI →
         </a>
       </div>
 
@@ -437,7 +437,7 @@ function DashboardContent() {
       {/* KPI 30-day */}
       <div>
         <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-3">
-          30 วันที่ผ่านมา
+          Last 30 days
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {kpiLoading ? (
@@ -445,23 +445,23 @@ function DashboardContent() {
           ) : (
             <>
               <KpiCard
-                label="รายได้รวม"
+                label="Total revenue"
                 value={formatCurrency(kpi?.revenue || 0)}
                 change={kpi?.revenue_growth}
                 sparkline={daily.slice(-14).map((d: any) => Number(d.revenue) || 0)}
               />
               <KpiCard
-                label="กำไรขั้นต้น"
+                label="Gross profit"
                 value={formatCurrency(kpi?.gross_profit || 0)}
                 sparkline={daily.slice(-14).map((d: any) => Number(d.revenue) * 0.4 || 0)}
               />
               <KpiCard
-                label="จำนวนออเดอร์"
+                label="Orders"
                 value={formatNumber(kpi?.order_count || 0)}
                 sparkline={daily.slice(-14).map((d: any) => Number(d.order_count) || Number(d.orders) || 0)}
               />
               <KpiCard
-                label="ค่าเฉลี่ยต่อบิล"
+                label="Avg per bill"
                 value={formatCurrency(kpi?.avg_ticket || 0)}
               />
             </>

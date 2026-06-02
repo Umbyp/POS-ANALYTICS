@@ -8,62 +8,62 @@ import { PageIntro } from '@/components/PageIntro';
 import { InsightBanner, BannerAction } from '@/components/InsightBanner';
 import { rowsToCsv, downloadCsv, copyToClipboard } from '@/lib/export';
 
-// Friendly Thai labels for each RFM segment, plus a concrete play book
+// Friendly labels for each RFM segment, plus a concrete playbook
 const SEGMENT_TRANSLATIONS: Record<
   string,
   { label: string; desc: string; playbook: string; smsTemplate?: string }
 > = {
   Champion: {
-    label: 'ลูกค้าระดับ VIP',
-    desc: 'มาบ่อย ใช้จ่ายเยอะ ซื้อล่าสุดเร็วๆ นี้',
-    playbook: 'ขอบคุณเป็นพิเศษ + early access โปรใหม่ + ของแถมพิเศษ — รักษาให้อยู่กับร้านนานๆ',
-    smsTemplate: 'ขอบคุณ {ชื่อ} ที่อุดหนุน {ร้าน} เสมอ 🙏 ส่วนลดพิเศษ 15% สำหรับวันเกิด/พิเศษ — โชว์ SMS นี้ได้เลย',
+    label: 'VIP customers',
+    desc: 'Visit often, spend a lot, bought recently',
+    playbook: 'Thank them personally + early access to new promos + special gifts — keep them around for the long run',
+    smsTemplate: 'Thank you {name} for always supporting {store} 🙏 Enjoy a special 15% off for your birthday — just show this SMS',
   },
   Loyal: {
-    label: 'ลูกค้าประจำ',
-    desc: 'มาเป็นประจำ ผูกพันกับร้าน',
-    playbook: 'ส่งโปรพิเศษ + ขอ review/แนะนำเพื่อน + เชิญร่วม loyalty program',
-    smsTemplate: '🎉 ขอบคุณที่เป็นลูกค้าประจำ! รับฟรี [เมนู] เมื่อซื้อครบ ฿200 ถึงสิ้นเดือนนี้',
+    label: 'Regulars',
+    desc: 'Come back regularly, attached to the store',
+    playbook: 'Send special promos + ask for reviews/referrals + invite to the loyalty program',
+    smsTemplate: '🎉 Thanks for being a regular! Get a free [item] when you spend ฿200, through the end of this month',
   },
   'Big Spender': {
-    label: 'ลูกค้าใช้จ่ายเยอะ',
-    desc: 'ครั้งละมาก แต่อาจมาไม่บ่อย',
-    playbook: 'เสนอเมนูพรีเมียม + ของแถมเมื่อซื้อเยอะ — กระตุ้นให้มาบ่อยขึ้น',
-    smsTemplate: 'จัดเลี้ยง/ปาร์ตี้? เรามีเซ็ตพิเศษให้คุณ {ชื่อ} — ลด 10% สำหรับยอดเกิน ฿1,000',
+    label: 'Big spenders',
+    desc: 'Spend a lot per visit, but maybe not often',
+    playbook: 'Offer premium items + gifts for large orders — encourage more frequent visits',
+    smsTemplate: 'Hosting an event/party? We have a special set for you {name} — 10% off orders over ฿1,000',
   },
   New: {
-    label: 'ลูกค้าใหม่',
-    desc: 'เพิ่งซื้อครั้งแรก ต้องดึงให้มาซ้ำ',
-    playbook: 'ส่ง coupon ครั้งที่ 2 ภายใน 7 วัน — เพิ่มอัตราการกลับมาเป็น 30-40%',
-    smsTemplate: 'ยินดีต้อนรับ {ชื่อ}! 🎁 ส่วนลด 50 บาท สำหรับครั้งถัดไป — ใช้ได้ภายใน 14 วัน',
+    label: 'New customers',
+    desc: 'Just bought for the first time — get them to return',
+    playbook: 'Send a 2nd-visit coupon within 7 days — boosts return rate to 30–40%',
+    smsTemplate: 'Welcome {name}! 🎁 ฿50 off your next visit — valid for 14 days',
   },
   Promising: {
-    label: 'ลูกค้ามีแววดี',
-    desc: 'มาแล้ว 2-3 ครั้ง กำลังจะเป็นประจำ',
-    playbook: 'ชวนสมัครสมาชิก + ส่ง personalized recommendation',
-    smsTemplate: 'สมัครสมาชิก {ร้าน} วันนี้ รับฟรี [เมนู] + สะสมแต้ม 1 บาท = 1 แต้ม',
+    label: 'Promising',
+    desc: 'Visited 2–3 times, becoming a regular',
+    playbook: 'Invite them to sign up + send personalized recommendations',
+    smsTemplate: 'Join {store} today and get a free [item] + earn points: ฿1 = 1 point',
   },
   'At Risk': {
-    label: 'กำลังจะหาย',
-    desc: 'ไม่มา 3-6 เดือนแล้ว ต้องดึงกลับด่วน',
-    playbook: 'ส่ง coupon แรงๆ (20-30% off) ทันที — รอช้าจะกลับยาก',
-    smsTemplate: 'คิดถึง {ชื่อ}! เราเก็บโปรพิเศษไว้รอ — ลด 20% รอบหน้า โชว์ SMS นี้ที่ร้าน',
+    label: 'At risk',
+    desc: "Haven't visited in 3–6 months — win them back fast",
+    playbook: 'Send a strong coupon (20–30% off) now — wait too long and they may not return',
+    smsTemplate: 'We miss you {name}! We saved a special deal for you — 20% off next time, show this SMS in store',
   },
   Hibernating: {
-    label: 'หายไปนาน',
-    desc: 'ไม่มา 6-12 เดือน — ลองส่ง coupon ดึงกลับ',
-    playbook: 'win-back campaign 30-40% off + ของแถม — สุดท้ายแล้ว ถ้าไม่กลับให้ตัดออก list',
-    smsTemplate: '{ชื่อ} กลับมาเถอะ 💕 ลด 30% เฉพาะคุณ ใช้ได้ครั้งเดียวภายใน 30 วัน',
+    label: 'Long gone',
+    desc: "Haven't visited in 6–12 months — try a win-back coupon",
+    playbook: 'Win-back campaign 30–40% off + a gift — last try; if they don\'t return, drop from the list',
+    smsTemplate: '{name}, come back 💕 30% off just for you, one-time use within 30 days',
   },
   Lost: {
-    label: 'น่าจะเลิกใช้แล้ว',
-    desc: 'ไม่มาเกิน 1 ปี — เลือกจะเก็บไว้หรือทำใจ',
-    playbook: 'ถ้างบจำกัด ตัดออกจาก list ไปก่อน — เก็บเฉพาะที่ใช้จ่ายเคยสูง',
+    label: 'Likely churned',
+    desc: 'No visit in over a year — keep or let go',
+    playbook: 'On a tight budget? Drop them for now — keep only the ones who used to spend a lot',
   },
   'Never Bought': {
-    label: 'ยังไม่เคยซื้อ',
-    desc: 'มีในระบบ แต่ไม่มีออเดอร์',
-    playbook: 'ส่งโปรชวนมาลอง + อธิบายเหตุที่ลูกค้าคนอื่นชอบ',
+    label: 'Never purchased',
+    desc: 'In the system but no orders',
+    playbook: 'Send an intro offer + explain what other customers love',
   },
 };
 
@@ -115,14 +115,14 @@ export default function CustomersPage() {
       points: c.points,
     }));
     const csv = rowsToCsv(rows, [
-      { label: 'ชื่อ', value: (r: any) => r.name },
-      { label: 'เบอร์โทร', value: (r: any) => r.phone },
-      { label: 'อีเมล', value: (r: any) => r.email },
-      { label: 'กลุ่ม', value: (r: any) => r.segment },
-      { label: 'มากี่ครั้ง', value: (r: any) => r.visits },
-      { label: 'ใช้จ่ายรวม', value: (r: any) => r.total_spent },
-      { label: 'มาล่าสุด (วันที่แล้ว)', value: (r: any) => r.last_visit_days_ago },
-      { label: 'แต้มสะสม', value: (r: any) => r.points },
+      { label: 'Name', value: (r: any) => r.name },
+      { label: 'Phone', value: (r: any) => r.phone },
+      { label: 'Email', value: (r: any) => r.email },
+      { label: 'Segment', value: (r: any) => r.segment },
+      { label: 'Visits', value: (r: any) => r.visits },
+      { label: 'Total spent', value: (r: any) => r.total_spent },
+      { label: 'Last visit (days ago)', value: (r: any) => r.last_visit_days_ago },
+      { label: 'Points', value: (r: any) => r.points },
     ]);
     const segPart = selectedSeg ? `-${selectedSeg}` : '-all';
     downloadCsv(`customers${segPart}-${new Date().toISOString().slice(0, 10)}.csv`, csv);
@@ -133,27 +133,27 @@ export default function CustomersPage() {
     const tpl = SEGMENT_TRANSLATIONS[segment]?.smsTemplate;
     if (!tpl) return;
     const ok = await copyToClipboard(tpl);
-    if (ok) showCopyToast('คัดลอกข้อความ SMS แล้ว');
+    if (ok) showCopyToast('SMS message copied');
   };
 
   const copyPhoneList = async () => {
     const phones = filtered.map((c: any) => c.phone).filter(Boolean).join(', ');
     if (!phones) return;
     const ok = await copyToClipboard(phones);
-    if (ok) showCopyToast(`คัดลอกเบอร์โทร ${phones.split(',').length} เบอร์`);
+    if (ok) showCopyToast(`Copied ${phones.split(',').length} phone numbers`);
   };
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl">
       <PageIntro
-        title="กลุ่มลูกค้า"
-        whatItTells="ระบบแบ่งลูกค้าเป็นกลุ่มอัตโนมัติจาก 3 สัญญาณ: มาบ่อยแค่ไหน, ใช้จ่ายเท่าไหร่, ซื้อครั้งล่าสุดเมื่อไหร่ (RFM)"
+        title="Customers"
+        whatItTells="Auto-groups customers from 3 signals: how often they visit, how much they spend, and how recently they bought (RFM)"
         howToUse={[
-          'ดู "ทำอะไรต่อ" ในกล่องสีเหลืองข้างล่าง — บอกว่าควรทำกับใครก่อน',
-          'คลิกที่กลุ่ม → ดูรายชื่อ + ก๊อปข้อความ SMS / Export CSV เอาไปทำแคมเปญ',
-          'เน้นกลุ่ม "กำลังจะหาย" + "หายไปนาน" — มี ROI สูงสุดเพราะลูกค้าเก่ารู้จักร้านแล้ว',
+          'Check "What to do next" in the yellow box below — it tells you who to focus on first',
+          'Click a group → see the list + copy an SMS message / Export CSV for a campaign',
+          'Focus on "At risk" + "Long gone" — highest ROI since they already know your store',
         ]}
-        tip="แนะนำ: ทำ SMS campaign ทุก 2 สัปดาห์กับกลุ่ม At Risk"
+        tip="Tip: run an SMS campaign every 2 weeks for the At-risk group"
       />
 
       {/* Error state */}
@@ -161,9 +161,9 @@ export default function CustomersPage() {
         <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
           <div className="text-sm">
-            <div className="font-medium">เชื่อมต่อ Analytics service ไม่ได้</div>
+            <div className="font-medium">Can&apos;t connect to the Analytics service</div>
             <div className="text-muted-foreground mt-1">
-              รัน{' '}
+              Run{' '}
               <code className="bg-card border border-border px-1.5 py-0.5 rounded text-xs">
                 cd apps/analytics-api &amp;&amp; uvicorn app.main:app --port 8000
               </code>
@@ -180,18 +180,18 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* Top-priority action banner — ทำให้ user รู้ว่าควรทำอะไรก่อน */}
+      {/* Top-priority action banner — tells the user what to do first */}
       {!isLoading && atRiskList.length > 0 && (
         <InsightBanner
           tone="warning"
-          title={`มีลูกค้า ${atRiskList.length} คนกำลังจะหาย`}
+          title={`${atRiskList.length} customers are slipping away`}
           description={
             <>
-              ลูกค้ากลุ่ม <strong>At Risk + Hibernating</strong> ที่ไม่กลับมาเกิน 3 เดือน —{' '}
-              ส่ง SMS coupon ตอนนี้ มีโอกาสกลับมา 15-25% (ของลูกค้าใหม่ ~2%)
+              Customers in <strong>At risk + Long gone</strong> who haven&apos;t returned in 3+ months —{' '}
+              send an SMS coupon now and 15–25% may come back (vs ~2% for new customers).
             </>
           }
-          metric={{ label: 'ลูกค้า', value: String(atRiskList.length) }}
+          metric={{ label: 'Customers', value: String(atRiskList.length) }}
           actions={
             <>
               <BannerAction
@@ -200,10 +200,10 @@ export default function CustomersPage() {
                   document.getElementById('customer-table')?.scrollIntoView({ behavior: 'smooth' });
                 }}
               >
-                <Sparkles className="w-3.5 h-3.5" /> ดูรายชื่อ At Risk
+                <Sparkles className="w-3.5 h-3.5" /> View At-risk list
               </BannerAction>
               <BannerAction variant="outline" onClick={() => copySmsTemplate('At Risk')}>
-                <MessageSquare className="w-3.5 h-3.5" /> ก๊อปข้อความ SMS
+                <MessageSquare className="w-3.5 h-3.5" /> Copy SMS message
               </BannerAction>
             </>
           }
@@ -213,10 +213,10 @@ export default function CustomersPage() {
       {/* CLV stats */}
       {clv && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="ลูกค้าทั้งหมด" value={clv.total_customers.toString()} />
-          <Stat label="ใช้จ่ายเฉลี่ย/คน" value={formatCurrency(clv.avg_clv)} />
+          <Stat label="Total customers" value={clv.total_customers.toString()} />
+          <Stat label="Avg spend / customer" value={formatCurrency(clv.avg_clv)} />
           <Stat label="VIP" value={(summary.champions || 0).toString()} tone="success" />
-          <Stat label="กำลังจะหาย" value={(summary.at_risk || 0).toString()} tone="warning" />
+          <Stat label="At risk" value={(summary.at_risk || 0).toString()} tone="warning" />
         </div>
       )}
 
@@ -224,14 +224,14 @@ export default function CustomersPage() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            เลือกกลุ่มเพื่อดูรายชื่อ
+            Pick a group to see the list
           </div>
           {selectedSeg && (
             <button
               onClick={() => setSelectedSeg(null)}
               className="text-xs text-primary hover:underline"
             >
-              ล้างตัวกรอง
+              Clear filter
             </button>
           )}
         </div>
@@ -244,9 +244,9 @@ export default function CustomersPage() {
                 : 'border-border bg-card hover:bg-card-hover/60'
             }`}
           >
-            <div className="text-xs text-muted-foreground">ทั้งหมด</div>
+            <div className="text-xs text-muted-foreground">All</div>
             <div className="text-xl font-semibold tabular-nums mt-1">{summary.total || customers.length}</div>
-            <div className="text-[10px] text-muted-foreground mt-1">ลูกค้าทุกกลุ่ม</div>
+            <div className="text-[10px] text-muted-foreground mt-1">All customer groups</div>
           </button>
           {segments.map((s: any) => {
             const t = SEGMENT_TRANSLATIONS[s.segment] || { label: s.segment, desc: s.action };
@@ -275,7 +275,7 @@ export default function CustomersPage() {
         <div className="bg-card border border-primary/40 rounded-lg p-4 space-y-3">
           <div>
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
-              ทำอะไรต่อกับกลุ่มนี้
+              What to do with this group
             </div>
             <div className="text-sm">{SEGMENT_TRANSLATIONS[selectedSeg].playbook}</div>
           </div>
@@ -284,20 +284,20 @@ export default function CustomersPage() {
             <div className="bg-muted/50 rounded-md p-3 border border-border">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <MessageSquare className="w-3 h-3" /> ตัวอย่างข้อความ SMS
+                  <MessageSquare className="w-3 h-3" /> Sample SMS message
                 </div>
                 <button
                   onClick={() => copySmsTemplate(selectedSeg)}
                   className="text-[11px] text-primary hover:underline flex items-center gap-1"
                 >
-                  <Copy className="w-3 h-3" /> ก๊อป
+                  <Copy className="w-3 h-3" /> Copy
                 </button>
               </div>
               <div className="text-sm text-foreground/90 font-mono leading-relaxed">
                 {SEGMENT_TRANSLATIONS[selectedSeg].smsTemplate}
               </div>
               <div className="text-[10px] text-muted-foreground mt-1.5">
-                {`แทน {ชื่อ} ด้วยชื่อลูกค้า · {ร้าน} ด้วยชื่อร้านของคุณ`}
+                {`Replace {name} with the customer's name · {store} with your store name`}
               </div>
             </div>
           )}
@@ -308,13 +308,13 @@ export default function CustomersPage() {
       <div id="customer-table" className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b border-border flex items-center justify-between flex-wrap gap-2">
           <h3 className="text-sm font-medium">
-            รายชื่อลูกค้า
+            Customer list
             {selectedSeg && (
               <span className="text-muted-foreground ml-1.5">
                 · {SEGMENT_TRANSLATIONS[selectedSeg]?.label || selectedSeg}
               </span>
             )}
-            <span className="ml-2 text-xs text-muted-foreground">({filtered.length} คน)</span>
+            <span className="ml-2 text-xs text-muted-foreground">({filtered.length} people)</span>
           </h3>
           <div className="flex gap-2">
             <button
@@ -322,7 +322,7 @@ export default function CustomersPage() {
               disabled={filtered.length === 0}
               className="text-xs flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border hover:bg-card-hover disabled:opacity-50"
             >
-              <Copy className="w-3.5 h-3.5" /> ก๊อปเบอร์ทั้งหมด
+              <Copy className="w-3.5 h-3.5" /> Copy all phone numbers
             </button>
             <button
               onClick={exportFiltered}
@@ -337,12 +337,12 @@ export default function CustomersPage() {
           <table className="w-full text-sm">
             <thead className="bg-card-hover/40 text-xs text-muted-foreground sticky top-0">
               <tr>
-                <th className="px-4 py-2.5 text-left">ชื่อ</th>
-                <th className="px-4 py-2.5 text-left">กลุ่ม</th>
-                <th className="px-4 py-2.5 text-right">มา</th>
-                <th className="px-4 py-2.5 text-right">ใช้จ่ายรวม</th>
-                <th className="px-4 py-2.5 text-right">มาล่าสุด</th>
-                <th className="px-4 py-2.5 text-right">แต้ม</th>
+                <th className="px-4 py-2.5 text-left">Name</th>
+                <th className="px-4 py-2.5 text-left">Group</th>
+                <th className="px-4 py-2.5 text-right">Visits</th>
+                <th className="px-4 py-2.5 text-right">Total spent</th>
+                <th className="px-4 py-2.5 text-right">Last visit</th>
+                <th className="px-4 py-2.5 text-right">Points</th>
               </tr>
             </thead>
             <tbody>
@@ -364,7 +364,7 @@ export default function CustomersPage() {
                       {formatCurrency(c.monetary)}
                     </td>
                     <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
-                      {c.recency_days != null ? `${c.recency_days} วัน` : 'ไม่เคย'}
+                      {c.recency_days != null ? `${c.recency_days} days ago` : 'Never'}
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums">{c.points}</td>
                   </tr>
@@ -373,7 +373,7 @@ export default function CustomersPage() {
               {filtered.length > 200 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-2.5 text-xs text-muted-foreground text-center">
-                    แสดง 200 จาก {filtered.length} คน — ใช้ Export CSV เพื่อดูทั้งหมด
+                    Showing 200 of {filtered.length} — use Export CSV to see all
                   </td>
                 </tr>
               )}

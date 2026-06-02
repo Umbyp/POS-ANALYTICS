@@ -31,7 +31,7 @@ export function PageIntro({ title, whatItTells, howToUse, tip }: Props) {
           {/* accent แถบซ้าย */}
           <span className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
           <div className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
-            ใช้ตัดสินใจอะไรได้
+            What you can act on
           </div>
           <ul className="space-y-2.5 text-[15px]">
             {howToUse.map((item, i) => (
