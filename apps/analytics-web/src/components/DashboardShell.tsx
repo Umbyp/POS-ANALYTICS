@@ -13,6 +13,7 @@ import {
   Grid2x2,
   ClipboardList,
   Tag,
+  ArrowLeft,
 } from 'lucide-react';
 import { api, cn, getActiveStoreId, setActiveStoreId } from '@/lib/api';
 
@@ -159,7 +160,20 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1 overflow-y-auto scrollbar-thin min-w-0">
         {storeId ? (
-          <StoreContext.Provider value={storeId}>{children}</StoreContext.Provider>
+          <StoreContext.Provider value={storeId}>
+            {/* แถบ "กลับหน้าหลัก" — โชว์ทุกหน้ายกเว้นหน้าภาพรวมเอง */}
+            {pathname !== '/' && (
+              <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-2.5">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" /> หน้าหลัก
+                </Link>
+              </div>
+            )}
+            {children}
+          </StoreContext.Provider>
         ) : (
           <div className="flex items-center justify-center h-screen text-muted-foreground text-sm">
             กำลังโหลดข้อมูลสาขา...
