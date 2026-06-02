@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
-import { Package, TrendingUp, Clock, Calendar, Sparkles, Target, Loader2, RefreshCw } from 'lucide-react';
+import { Package, TrendingUp, Clock, Calendar, Sparkles, Target, Loader2, RefreshCw, DollarSign, PiggyBank, ShoppingBag, Receipt } from 'lucide-react';
 import { DashboardShell, useStoreId } from '@/components/DashboardShell';
 import { KpiCard, KpiSkeleton } from '@/components/dashboard/KpiCard';
 import { RevenueChart, SalesHeatmap, TopProductsCard } from '@/components/dashboard/Charts';
@@ -448,21 +448,27 @@ function DashboardContent() {
                 label="Total revenue"
                 value={formatCurrency(kpi?.revenue || 0)}
                 change={kpi?.revenue_growth}
+                icon={<DollarSign className="w-5 h-5" />}
                 sparkline={daily.slice(-14).map((d: any) => Number(d.revenue) || 0)}
               />
               <KpiCard
                 label="Gross profit"
                 value={formatCurrency(kpi?.gross_profit || 0)}
+                icon={<PiggyBank className="w-5 h-5" />}
+                accent="bg-success/10 text-success"
                 sparkline={daily.slice(-14).map((d: any) => Number(d.revenue) * 0.4 || 0)}
               />
               <KpiCard
                 label="Orders"
                 value={formatNumber(kpi?.order_count || 0)}
+                icon={<ShoppingBag className="w-5 h-5" />}
+                accent="bg-accent/10 text-accent"
                 sparkline={daily.slice(-14).map((d: any) => Number(d.order_count) || Number(d.orders) || 0)}
               />
               <KpiCard
                 label="Avg per bill"
                 value={formatCurrency(kpi?.avg_ticket || 0)}
+                icon={<Receipt className="w-5 h-5" />}
               />
             </>
           )}

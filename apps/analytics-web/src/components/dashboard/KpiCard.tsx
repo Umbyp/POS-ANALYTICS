@@ -13,7 +13,7 @@ interface KpiCardProps {
   delay?: number;
 }
 
-export function KpiCard({ label, value, change, sparkline }: KpiCardProps) {
+export function KpiCard({ label, value, change, sparkline, icon, accent }: KpiCardProps) {
   const hasChange = change !== undefined && change !== null;
   const positive = (change ?? 0) > 0.1;
   const negative = (change ?? 0) < -0.1;
@@ -21,12 +21,19 @@ export function KpiCard({ label, value, change, sparkline }: KpiCardProps) {
 
   return (
     <div className="bg-card border border-border rounded-xl p-5 flex flex-col shadow-card hover:shadow-card-hover transition-shadow">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+      {/* Top row: icon chip + trend badge (Power-BI style tile) */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        {icon ? (
+          <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center shrink-0', accent || 'bg-primary/10 text-primary')}>
+            {icon}
+          </div>
+        ) : (
+          <span />
+        )}
         {hasChange && (
           <div
             className={cn(
-              'flex items-center gap-0.5 text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded',
+              'flex items-center gap-0.5 text-[11px] font-semibold tabular-nums px-2 py-1 rounded-full',
               positive
                 ? 'bg-success/10 text-success'
                 : negative
@@ -40,7 +47,9 @@ export function KpiCard({ label, value, change, sparkline }: KpiCardProps) {
           </div>
         )}
       </div>
-      <div className="text-metric-md mt-2 tabular-nums truncate font-semibold">{value}</div>
+
+      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-metric-md mt-1 tabular-nums truncate font-semibold">{value}</div>
 
       {/* Sparkline */}
       {sparkline && sparkline.length >= 2 && (
