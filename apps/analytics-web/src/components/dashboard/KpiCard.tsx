@@ -1,6 +1,7 @@
 'use client';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface KpiCardProps {
   label: string;
@@ -8,12 +9,14 @@ interface KpiCardProps {
   change?: number;
   /** Tiny inline sparkline data (last 7-14 points), optional */
   sparkline?: number[];
-  icon?: React.ReactNode;  // ignored — kept for backward compatibility
+  /** Short receipt-style code printed as a ticket tag, e.g. "REV", "NET", "QTY", "AVG" */
+  mark?: string;
   accent?: string;
   delay?: number;
 }
 
-export function KpiCard({ label, value, change, sparkline, icon, accent }: KpiCardProps) {
+export function KpiCard({ label, value, change, sparkline, mark, accent }: KpiCardProps) {
+  const t = useT();
   const hasChange = change !== undefined && change !== null;
   const positive = (change ?? 0) > 0.1;
   const negative = (change ?? 0) < -0.1;
@@ -21,12 +24,17 @@ export function KpiCard({ label, value, change, sparkline, icon, accent }: KpiCa
 
   return (
     <div className="bg-card border border-border rounded-xl p-5 flex flex-col shadow-card hover:shadow-card-hover transition-shadow">
-      {/* Top row: icon chip + trend badge (Power-BI style tile) */}
+      {/* Top row: receipt-style ticket tag + trend badge */}
       <div className="flex items-center justify-between gap-2 mb-3">
-        {icon ? (
-          <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center shrink-0', accent || 'bg-primary/10 text-primary')}>
-            {icon}
-          </div>
+        {mark ? (
+          <span
+            className={cn(
+              'inline-flex items-center h-6 px-2.5 rounded-sm border font-mono text-[10px] font-bold tracking-[0.15em]',
+              accent || 'text-muted-foreground border-border bg-muted/40'
+            )}
+          >
+            {mark}
+          </span>
         ) : (
           <span />
         )}
@@ -57,7 +65,7 @@ export function KpiCard({ label, value, change, sparkline, icon, accent }: KpiCa
       )}
 
       {hasChange && (
-        <div className="text-[10px] text-muted-foreground mt-1.5">vs previous period</div>
+        <div className="text-[10px] text-muted-foreground mt-1.5">{t('ov.vsPreviousPeriod')}</div>
       )}
     </div>
   );

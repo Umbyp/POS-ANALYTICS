@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n';
 
 interface Props {
   title: string;
@@ -17,6 +18,7 @@ interface Props {
  *   - ใช้ตัดสินใจอะไร
  */
 export function PageIntro({ title, whatItTells, howToUse, tip }: Props) {
+  const t = useT();
   return (
     <div className="space-y-4">
       <div>
@@ -31,7 +33,7 @@ export function PageIntro({ title, whatItTells, howToUse, tip }: Props) {
           {/* accent แถบซ้าย */}
           <span className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
           <div className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
-            What you can act on
+            {t('pb.whatToActOn')}
           </div>
           <ul className="space-y-2.5 text-[15px]">
             {howToUse.map((item, i) => (

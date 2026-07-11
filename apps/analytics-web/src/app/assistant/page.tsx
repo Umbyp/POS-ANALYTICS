@@ -7,8 +7,9 @@ import {
   Send, Bot, User, Sparkles, Loader2, TrendingUp, TrendingDown,
   Package, Clock, ShoppingBag, DollarSign, Users, BarChart3, RefreshCw,
 } from 'lucide-react';
-import { DashboardShell, useStoreId } from '@/components/DashboardShell';
+import { useStoreId } from '@/components/DashboardShell';
 import { api, API_BASE, formatCurrency } from '@/lib/api';
+import { useT, useLang, currentLang } from '@/lib/i18n';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -16,16 +17,20 @@ interface Message {
   timestamp?: Date;
 }
 
-const QUICK_ACTIONS = [
-  { label: "Today's sales", icon: DollarSign, q: "How are today's sales? Compare with yesterday too." },
-  { label: 'What to reorder', icon: Package, q: 'Which products do I urgently need to reorder today?' },
-  { label: 'Staff tasks', icon: Users, q: 'What should the staff focus on today?' },
-  { label: 'Analyze store', icon: BarChart3, q: 'Analyze my business and suggest what to improve.' },
-  { label: 'Forecast', icon: TrendingUp, q: "Forecast next month's revenue." },
-  { label: 'Peak hours', icon: Clock, q: 'Which hours have the most customers?' },
-];
+function useQuickActions() {
+  const t = useT();
+  return [
+    { labelKey: 'ai.quick.todaySales', icon: DollarSign, qKey: 'ai.quick.todaySalesQ' },
+    { labelKey: 'ai.quick.reorder', icon: Package, qKey: 'ai.quick.reorderQ' },
+    { labelKey: 'ai.quick.staffTasks', icon: Users, qKey: 'ai.quick.staffTasksQ' },
+    { labelKey: 'ai.quick.analyze', icon: BarChart3, qKey: 'ai.quick.analyzeQ' },
+    { labelKey: 'ai.quick.forecast', icon: TrendingUp, qKey: 'ai.quick.forecastQ' },
+    { labelKey: 'ai.quick.peakHours', icon: Clock, qKey: 'ai.quick.peakHoursQ' },
+  ].map((a) => ({ ...a, label: t(a.labelKey), q: t(a.qKey) }));
+}
 
 function TodayStatsPanel({ storeId }: { storeId: string }) {
+  const t = useT();
   const { data: kpi, isLoading, refetch } = useQuery({
     queryKey: ['today', storeId],
     queryFn: () => api.get('/api/analytics/today', { params: { store_id: storeId } }).then((r) => r.data),
@@ -46,11 +51,11 @@ function TodayStatsPanel({ storeId }: { storeId: string }) {
   return (
     <div className="border-b border-border/60 bg-background/60 backdrop-blur-xl px-6 py-4">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Today&apos;s status</span>
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('ai.todayStatus')}</span>
         <button
           onClick={() => refetch()}
           className="text-muted-foreground hover:text-foreground transition-colors"
-          title="Refresh"
+          title={t('ai.refresh')}
         >
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
@@ -66,32 +71,32 @@ function TodayStatsPanel({ storeId }: { storeId: string }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatPill
             icon={<DollarSign className="w-4 h-4" />}
-            label="Revenue today"
+            label={t('ai.revenueToday')}
             value={formatCurrency(kpi?.revenue || 0)}
-            sub={kpi?.vs_yesterday_pct != null ? `${kpi.vs_yesterday_pct > 0 ? '+' : ''}${kpi.vs_yesterday_pct.toFixed(1)}% vs yesterday` : ''}
+            sub={kpi?.vs_yesterday_pct != null ? `${kpi.vs_yesterday_pct > 0 ? '+' : ''}${kpi.vs_yesterday_pct.toFixed(1)}% ${t('ai.vsYesterday')}` : ''}
             positive={kpi?.vs_yesterday_pct >= 0}
             color="text-primary"
           />
           <StatPill
             icon={<ShoppingBag className="w-4 h-4" />}
-            label="Orders"
-            value={`${kpi?.order_count || 0} orders`}
-            sub="today"
+            label={t('ai.orders')}
+            value={`${kpi?.order_count || 0} ${t('ai.ordersUnit')}`}
+            sub={t('ai.today')}
             color="text-primary"
           />
           <StatPill
             icon={<TrendingUp className="w-4 h-4" />}
-            label="30 days (revenue)"
+            label={t('ai.days30Revenue')}
             value={formatCurrency(kpi30?.revenue || 0)}
-            sub={`${kpi30?.revenue_growth?.toFixed(1) || 0}% growth`}
+            sub={`${kpi30?.revenue_growth?.toFixed(1) || 0}% ${t('ai.growth')}`}
             positive={kpi30?.revenue_growth >= 0}
             color="text-success"
           />
           <StatPill
             icon={<Package className="w-4 h-4" />}
-            label="Low stock"
-            value={`${lowStockCount} items`}
-            sub={lowStockCount > 0 ? 'reorder needed' : 'OK'}
+            label={t('ai.lowStock')}
+            value={`${lowStockCount} ${t('ai.items')}`}
+            sub={lowStockCount > 0 ? t('ai.reorderNeeded') : t('ai.ok')}
             positive={lowStockCount === 0}
             color={lowStockCount > 0 ? 'text-warning' : 'text-success'}
           />
@@ -122,6 +127,9 @@ function StatPill({ icon, label, value, sub, positive, color }: {
 }
 
 function AssistantContent() {
+  const t = useT();
+  const { lang } = useLang();
+  const quickActions = useQuickActions();
   const storeId = useStoreId();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -130,7 +138,7 @@ function AssistantContent() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: suggestions = [] } = useQuery({
-    queryKey: ['suggestions'],
+    queryKey: ['suggestions', lang],
     queryFn: () => api.get('/api/chat/suggestions').then((r) => r.data.questions),
   });
 
@@ -155,6 +163,7 @@ function AssistantContent() {
           store_id: storeId,
           message: text,
           history: history.map((m) => ({ role: m.role, content: m.content })),
+          lang: currentLang,
         }),
       });
 
@@ -179,7 +188,7 @@ function AssistantContent() {
         const next = [...prev];
         next[next.length - 1] = {
           role: 'assistant',
-          content: '⚠️ Something went wrong connecting to the AI. Please try again.',
+          content: t('ai.errorMsg'),
           timestamp: new Date(),
         };
         return next;
@@ -201,8 +210,8 @@ function AssistantContent() {
             <Bot className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-base font-bold leading-tight">POS AI Assistant</h1>
-            <p className="text-xs text-muted-foreground">Real-time data from POS</p>
+            <h1 className="text-base font-bold leading-tight">{t('ai.title')}</h1>
+            <p className="text-xs text-muted-foreground">{t('ai.subtitle')}</p>
           </div>
         </div>
         {messages.length > 0 && (
@@ -210,7 +219,7 @@ function AssistantContent() {
             onClick={clearChat}
             className="text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-card transition-colors"
           >
-            Clear chat
+            {t('ai.clearChat')}
           </button>
         )}
       </div>
@@ -234,15 +243,15 @@ function AssistantContent() {
                 <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4 shadow-md">
                   <Sparkles className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-lg font-bold mb-1">Ask anything!</h2>
-                <p className="text-muted-foreground text-sm">AI pulls live POS data and analyzes it for you in real time</p>
+                <h2 className="text-lg font-bold mb-1">{t('ai.askAnything')}</h2>
+                <p className="text-muted-foreground text-sm">{t('ai.askAnythingDesc')}</p>
               </div>
 
               {/* Quick actions */}
               <div className="mb-6">
-                <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wider">Popular questions</p>
+                <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wider">{t('ai.popularQuestions')}</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {QUICK_ACTIONS.map((a) => {
+                  {quickActions.map((a) => {
                     const Icon = a.icon;
                     return (
                       <button
@@ -262,7 +271,7 @@ function AssistantContent() {
               {/* More suggestions */}
               {suggestions.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wider">More questions</p>
+                  <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wider">{t('ai.moreQuestions')}</p>
                   <div className="flex flex-wrap gap-2">
                     {suggestions.map((q: string) => (
                       <button
@@ -326,7 +335,7 @@ function AssistantContent() {
                     </div>
                     {m.timestamp && m.content && (
                       <span className={`text-[10px] text-muted-foreground px-1 ${m.role === 'user' ? 'text-right' : ''}`}>
-                        {m.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        {m.timestamp.toLocaleTimeString(lang === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
                   </div>
@@ -343,7 +352,7 @@ function AssistantContent() {
           {/* Quick action chips while chatting */}
           {messages.length > 0 && (
             <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-none pb-1">
-              {QUICK_ACTIONS.slice(0, 4).map((a) => {
+              {quickActions.slice(0, 4).map((a) => {
                 const Icon = a.icon;
                 return (
                   <button
@@ -366,7 +375,7 @@ function AssistantContent() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send(input)}
-              placeholder="e.g. How are sales today? What should staff do?"
+              placeholder={t('ai.inputPlaceholder')}
               disabled={streaming}
               className="flex-1 bg-input border border-border rounded-2xl pl-5 pr-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all shadow-sm disabled:opacity-50 placeholder:text-muted-foreground/60 resize-none"
             />
@@ -385,9 +394,5 @@ function AssistantContent() {
 }
 
 export default function Page() {
-  return (
-    <DashboardShell>
-      <AssistantContent />
-    </DashboardShell>
-  );
+  return <AssistantContent />;
 }

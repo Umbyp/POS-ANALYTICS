@@ -7,67 +7,40 @@ import { useStoreId } from '@/components/DashboardShell';
 import { PageIntro } from '@/components/PageIntro';
 import { InsightBanner, BannerAction } from '@/components/InsightBanner';
 import { rowsToCsv, downloadCsv, copyToClipboard } from '@/lib/export';
+import { useT } from '@/lib/i18n';
 
-// Friendly labels for each RFM segment, plus a concrete playbook
-const SEGMENT_TRANSLATIONS: Record<
-  string,
-  { label: string; desc: string; playbook: string; smsTemplate?: string }
-> = {
-  Champion: {
-    label: 'VIP customers',
-    desc: 'Visit often, spend a lot, bought recently',
-    playbook: 'Thank them personally + early access to new promos + special gifts — keep them around for the long run',
-    smsTemplate: 'Thank you {name} for always supporting {store} 🙏 Enjoy a special 15% off for your birthday — just show this SMS',
-  },
-  Loyal: {
-    label: 'Regulars',
-    desc: 'Come back regularly, attached to the store',
-    playbook: 'Send special promos + ask for reviews/referrals + invite to the loyalty program',
-    smsTemplate: '🎉 Thanks for being a regular! Get a free [item] when you spend ฿200, through the end of this month',
-  },
-  'Big Spender': {
-    label: 'Big spenders',
-    desc: 'Spend a lot per visit, but maybe not often',
-    playbook: 'Offer premium items + gifts for large orders — encourage more frequent visits',
-    smsTemplate: 'Hosting an event/party? We have a special set for you {name} — 10% off orders over ฿1,000',
-  },
-  New: {
-    label: 'New customers',
-    desc: 'Just bought for the first time — get them to return',
-    playbook: 'Send a 2nd-visit coupon within 7 days — boosts return rate to 30–40%',
-    smsTemplate: 'Welcome {name}! 🎁 ฿50 off your next visit — valid for 14 days',
-  },
-  Promising: {
-    label: 'Promising',
-    desc: 'Visited 2–3 times, becoming a regular',
-    playbook: 'Invite them to sign up + send personalized recommendations',
-    smsTemplate: 'Join {store} today and get a free [item] + earn points: ฿1 = 1 point',
-  },
-  'At Risk': {
-    label: 'At risk',
-    desc: "Haven't visited in 3–6 months — win them back fast",
-    playbook: 'Send a strong coupon (20–30% off) now — wait too long and they may not return',
-    smsTemplate: 'We miss you {name}! We saved a special deal for you — 20% off next time, show this SMS in store',
-  },
-  Hibernating: {
-    label: 'Long gone',
-    desc: "Haven't visited in 6–12 months — try a win-back coupon",
-    playbook: 'Win-back campaign 30–40% off + a gift — last try; if they don\'t return, drop from the list',
-    smsTemplate: '{name}, come back 💕 30% off just for you, one-time use within 30 days',
-  },
-  Lost: {
-    label: 'Likely churned',
-    desc: 'No visit in over a year — keep or let go',
-    playbook: 'On a tight budget? Drop them for now — keep only the ones who used to spend a lot',
-  },
-  'Never Bought': {
-    label: 'Never purchased',
-    desc: 'In the system but no orders',
-    playbook: 'Send an intro offer + explain what other customers love',
-  },
+// Maps each RFM segment name to its translation dict key (the segment names
+// themselves come from the API in English, e.g. "Big Spender" -> "BigSpender").
+const SEGMENT_KEY: Record<string, string> = {
+  Champion: 'Champion',
+  Loyal: 'Loyal',
+  'Big Spender': 'BigSpender',
+  New: 'New',
+  Promising: 'Promising',
+  'At Risk': 'AtRisk',
+  Hibernating: 'Hibernating',
+  Lost: 'Lost',
+  'Never Bought': 'NeverBought',
 };
 
+function useSegmentInfo() {
+  const t = useT();
+  return (segment: string) => {
+    const key = SEGMENT_KEY[segment];
+    if (!key) return { label: segment, desc: '', playbook: '', smsTemplate: undefined as string | undefined };
+    const smsTemplate = t(`seg.${key}.sms`, '');
+    return {
+      label: t(`seg.${key}.label`, segment),
+      desc: t(`seg.${key}.desc`, ''),
+      playbook: t(`seg.${key}.playbook`, ''),
+      smsTemplate: smsTemplate || undefined,
+    };
+  };
+}
+
 export default function CustomersPage() {
+  const t = useT();
+  const segmentInfo = useSegmentInfo();
   const storeId = useStoreId();
   const [selectedSeg, setSelectedSeg] = useState<string | null>(null);
   const [copyToast, setCopyToast] = useState('');
@@ -108,52 +81,48 @@ export default function CustomersPage() {
       name: c.name,
       phone: c.phone || '',
       email: c.email || '',
-      segment: SEGMENT_TRANSLATIONS[c.segment]?.label || c.segment,
+      segment: segmentInfo(c.segment).label,
       visits: c.frequency,
       total_spent: c.monetary,
       last_visit_days_ago: c.recency_days ?? '',
       points: c.points,
     }));
     const csv = rowsToCsv(rows, [
-      { label: 'Name', value: (r: any) => r.name },
+      { label: t('cust.colName'), value: (r: any) => r.name },
       { label: 'Phone', value: (r: any) => r.phone },
       { label: 'Email', value: (r: any) => r.email },
-      { label: 'Segment', value: (r: any) => r.segment },
-      { label: 'Visits', value: (r: any) => r.visits },
-      { label: 'Total spent', value: (r: any) => r.total_spent },
-      { label: 'Last visit (days ago)', value: (r: any) => r.last_visit_days_ago },
-      { label: 'Points', value: (r: any) => r.points },
+      { label: t('cust.colGroup'), value: (r: any) => r.segment },
+      { label: t('cust.colVisits'), value: (r: any) => r.visits },
+      { label: t('cust.colTotalSpent'), value: (r: any) => r.total_spent },
+      { label: t('cust.colLastVisit') + ' (' + t('cust.daysAgo') + ')', value: (r: any) => r.last_visit_days_ago },
+      { label: t('cust.colPoints'), value: (r: any) => r.points },
     ]);
     const segPart = selectedSeg ? `-${selectedSeg}` : '-all';
     downloadCsv(`customers${segPart}-${new Date().toISOString().slice(0, 10)}.csv`, csv);
-    showCopyToast(`Exported ${rows.length} customers`);
+    showCopyToast(`${t('cust.toastExported')} ${rows.length} ${t('cust.toastExportedSuffix')}`);
   };
 
   const copySmsTemplate = async (segment: string) => {
-    const tpl = SEGMENT_TRANSLATIONS[segment]?.smsTemplate;
+    const tpl = segmentInfo(segment).smsTemplate;
     if (!tpl) return;
     const ok = await copyToClipboard(tpl);
-    if (ok) showCopyToast('SMS message copied');
+    if (ok) showCopyToast(t('cust.toastSmsCopied'));
   };
 
   const copyPhoneList = async () => {
     const phones = filtered.map((c: any) => c.phone).filter(Boolean).join(', ');
     if (!phones) return;
     const ok = await copyToClipboard(phones);
-    if (ok) showCopyToast(`Copied ${phones.split(',').length} phone numbers`);
+    if (ok) showCopyToast(`${t('cust.toastPhonesCopied')} ${phones.split(',').length} ${t('cust.toastPhonesCopiedSuffix')}`);
   };
 
   return (
     <div className="p-6 space-y-5 max-w-screen-xl">
       <PageIntro
-        title="Customers"
-        whatItTells="Auto-groups customers from 3 signals: how often they visit, how much they spend, and how recently they bought (RFM)"
-        howToUse={[
-          'Check "What to do next" in the yellow box below — it tells you who to focus on first',
-          'Click a group → see the list + copy an SMS message / Export CSV for a campaign',
-          'Focus on "At risk" + "Long gone" — highest ROI since they already know your store',
-        ]}
-        tip="Tip: run an SMS campaign every 2 weeks for the At-risk group"
+        title={t('cust.title')}
+        whatItTells={t('cust.subtitle')}
+        howToUse={[t('cust.howTo1'), t('cust.howTo2'), t('cust.howTo3')]}
+        tip={t('cust.tip')}
       />
 
       {/* Error state */}
@@ -161,9 +130,9 @@ export default function CustomersPage() {
         <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
           <div className="text-sm">
-            <div className="font-medium">Can&apos;t connect to the Analytics service</div>
+            <div className="font-medium">{t('cust.cantConnect')}</div>
             <div className="text-muted-foreground mt-1">
-              Run{' '}
+              {t('cust.runCmd')}{' '}
               <code className="bg-card border border-border px-1.5 py-0.5 rounded text-xs">
                 cd apps/analytics-api &amp;&amp; uvicorn app.main:app --port 8000
               </code>
@@ -184,14 +153,14 @@ export default function CustomersPage() {
       {!isLoading && atRiskList.length > 0 && (
         <InsightBanner
           tone="warning"
-          title={`${atRiskList.length} customers are slipping away`}
+          title={`${atRiskList.length} ${t('cust.slippingAway')}`}
           description={
             <>
-              Customers in <strong>At risk + Long gone</strong> who haven&apos;t returned in 3+ months —{' '}
-              send an SMS coupon now and 15–25% may come back (vs ~2% for new customers).
+              {t('cust.slippingDesc1')} <strong>{t('cust.atRiskLongGone')}</strong> {t('cust.slippingDesc2')}{' '}
+              {t('cust.slippingDesc3')}
             </>
           }
-          metric={{ label: 'Customers', value: String(atRiskList.length) }}
+          metric={{ label: t('cust.customersLabel'), value: String(atRiskList.length) }}
           actions={
             <>
               <BannerAction
@@ -200,10 +169,10 @@ export default function CustomersPage() {
                   document.getElementById('customer-table')?.scrollIntoView({ behavior: 'smooth' });
                 }}
               >
-                <Sparkles className="w-3.5 h-3.5" /> View At-risk list
+                <Sparkles className="w-3.5 h-3.5" /> {t('cust.viewAtRiskList')}
               </BannerAction>
               <BannerAction variant="outline" onClick={() => copySmsTemplate('At Risk')}>
-                <MessageSquare className="w-3.5 h-3.5" /> Copy SMS message
+                <MessageSquare className="w-3.5 h-3.5" /> {t('cust.copySmsMessage')}
               </BannerAction>
             </>
           }
@@ -213,10 +182,10 @@ export default function CustomersPage() {
       {/* CLV stats */}
       {clv && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="Total customers" value={clv.total_customers.toString()} />
-          <Stat label="Avg spend / customer" value={formatCurrency(clv.avg_clv)} />
-          <Stat label="VIP" value={(summary.champions || 0).toString()} tone="success" />
-          <Stat label="At risk" value={(summary.at_risk || 0).toString()} tone="warning" />
+          <Stat label={t('cust.totalCustomers')} value={(clv.total_customers || 0).toString()} />
+          <Stat label={t('cust.avgSpend')} value={formatCurrency(clv.avg_clv || 0)} />
+          <Stat label={t('cust.vip')} value={(summary.champions || 0).toString()} tone="success" />
+          <Stat label={t('cust.atRisk')} value={(summary.at_risk || 0).toString()} tone="warning" />
         </div>
       )}
 
@@ -224,14 +193,14 @@ export default function CustomersPage() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            Pick a group to see the list
+            {t('cust.pickGroup')}
           </div>
           {selectedSeg && (
             <button
               onClick={() => setSelectedSeg(null)}
               className="text-xs text-primary hover:underline"
             >
-              Clear filter
+              {t('cust.clearFilter')}
             </button>
           )}
         </div>
@@ -244,12 +213,12 @@ export default function CustomersPage() {
                 : 'border-border bg-card hover:bg-card-hover/60'
             }`}
           >
-            <div className="text-xs text-muted-foreground">All</div>
+            <div className="text-xs text-muted-foreground">{t('cust.all')}</div>
             <div className="text-xl font-semibold tabular-nums mt-1">{summary.total || customers.length}</div>
-            <div className="text-[10px] text-muted-foreground mt-1">All customer groups</div>
+            <div className="text-[10px] text-muted-foreground mt-1">{t('cust.allGroups')}</div>
           </button>
           {segments.map((s: any) => {
-            const t = SEGMENT_TRANSLATIONS[s.segment] || { label: s.segment, desc: s.action };
+            const info = segmentInfo(s.segment);
             return (
               <button
                 key={s.segment}
@@ -261,9 +230,9 @@ export default function CustomersPage() {
                 }`}
                 style={{ borderLeft: `3px solid ${s.color}` }}
               >
-                <div className="text-xs text-muted-foreground">{t.label}</div>
+                <div className="text-xs text-muted-foreground">{info.label}</div>
                 <div className="text-xl font-semibold tabular-nums mt-1">{s.count}</div>
-                <div className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{t.desc}</div>
+                <div className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{info.desc}</div>
               </button>
             );
           })}
@@ -271,33 +240,33 @@ export default function CustomersPage() {
       </div>
 
       {/* Playbook + actions for selected segment */}
-      {selectedSeg && SEGMENT_TRANSLATIONS[selectedSeg] && (
+      {selectedSeg && SEGMENT_KEY[selectedSeg] && (
         <div className="bg-card border border-primary/40 rounded-lg p-4 space-y-3">
           <div>
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
-              What to do with this group
+              {t('cust.whatToDo')}
             </div>
-            <div className="text-sm">{SEGMENT_TRANSLATIONS[selectedSeg].playbook}</div>
+            <div className="text-sm">{segmentInfo(selectedSeg).playbook}</div>
           </div>
 
-          {SEGMENT_TRANSLATIONS[selectedSeg].smsTemplate && (
+          {segmentInfo(selectedSeg).smsTemplate && (
             <div className="bg-muted/50 rounded-md p-3 border border-border">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <MessageSquare className="w-3 h-3" /> Sample SMS message
+                  <MessageSquare className="w-3 h-3" /> {t('cust.sampleSms')}
                 </div>
                 <button
                   onClick={() => copySmsTemplate(selectedSeg)}
                   className="text-[11px] text-primary hover:underline flex items-center gap-1"
                 >
-                  <Copy className="w-3 h-3" /> Copy
+                  <Copy className="w-3 h-3" /> {t('cust.copy')}
                 </button>
               </div>
               <div className="text-sm text-foreground/90 font-mono leading-relaxed">
-                {SEGMENT_TRANSLATIONS[selectedSeg].smsTemplate}
+                {segmentInfo(selectedSeg).smsTemplate}
               </div>
               <div className="text-[10px] text-muted-foreground mt-1.5">
-                {`Replace {name} with the customer's name · {store} with your store name`}
+                {t('cust.replaceHint')}
               </div>
             </div>
           )}
@@ -308,13 +277,13 @@ export default function CustomersPage() {
       <div id="customer-table" className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b border-border flex items-center justify-between flex-wrap gap-2">
           <h3 className="text-sm font-medium">
-            Customer list
+            {t('cust.customerList')}
             {selectedSeg && (
               <span className="text-muted-foreground ml-1.5">
-                · {SEGMENT_TRANSLATIONS[selectedSeg]?.label || selectedSeg}
+                · {segmentInfo(selectedSeg).label}
               </span>
             )}
-            <span className="ml-2 text-xs text-muted-foreground">({filtered.length} people)</span>
+            <span className="ml-2 text-xs text-muted-foreground">({filtered.length} {t('cust.people')})</span>
           </h3>
           <div className="flex gap-2">
             <button
@@ -322,14 +291,14 @@ export default function CustomersPage() {
               disabled={filtered.length === 0}
               className="text-xs flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border hover:bg-card-hover disabled:opacity-50"
             >
-              <Copy className="w-3.5 h-3.5" /> Copy all phone numbers
+              <Copy className="w-3.5 h-3.5" /> {t('cust.copyAllPhones')}
             </button>
             <button
               onClick={exportFiltered}
               disabled={filtered.length === 0}
               className="text-xs flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary-600 disabled:opacity-50"
             >
-              <Download className="w-3.5 h-3.5" /> Export CSV
+              <Download className="w-3.5 h-3.5" /> {t('cust.exportCsv')}
             </button>
           </div>
         </div>
@@ -337,17 +306,17 @@ export default function CustomersPage() {
           <table className="w-full text-sm">
             <thead className="bg-card-hover/40 text-xs text-muted-foreground sticky top-0">
               <tr>
-                <th className="px-4 py-2.5 text-left">Name</th>
-                <th className="px-4 py-2.5 text-left">Group</th>
-                <th className="px-4 py-2.5 text-right">Visits</th>
-                <th className="px-4 py-2.5 text-right">Total spent</th>
-                <th className="px-4 py-2.5 text-right">Last visit</th>
-                <th className="px-4 py-2.5 text-right">Points</th>
+                <th className="px-4 py-2.5 text-left">{t('cust.colName')}</th>
+                <th className="px-4 py-2.5 text-left">{t('cust.colGroup')}</th>
+                <th className="px-4 py-2.5 text-right">{t('cust.colVisits')}</th>
+                <th className="px-4 py-2.5 text-right">{t('cust.colTotalSpent')}</th>
+                <th className="px-4 py-2.5 text-right">{t('cust.colLastVisit')}</th>
+                <th className="px-4 py-2.5 text-right">{t('cust.colPoints')}</th>
               </tr>
             </thead>
             <tbody>
               {filtered.slice(0, 200).map((c: any) => {
-                const t = SEGMENT_TRANSLATIONS[c.segment] || { label: c.segment };
+                const info = segmentInfo(c.segment);
                 return (
                   <tr key={c.id} className="border-t border-border hover:bg-card-hover/40">
                     <td className="px-4 py-2.5">
@@ -358,13 +327,13 @@ export default function CustomersPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-xs">{t.label}</td>
+                    <td className="px-4 py-2.5 text-xs">{info.label}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums">{c.frequency}×</td>
                     <td className="px-4 py-2.5 text-right tabular-nums font-medium">
                       {formatCurrency(c.monetary)}
                     </td>
                     <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
-                      {c.recency_days != null ? `${c.recency_days} days ago` : 'Never'}
+                      {c.recency_days != null ? `${c.recency_days} ${t('cust.daysAgo')}` : t('cust.never')}
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums">{c.points}</td>
                   </tr>
@@ -373,7 +342,7 @@ export default function CustomersPage() {
               {filtered.length > 200 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-2.5 text-xs text-muted-foreground text-center">
-                    Showing 200 of {filtered.length} — use Export CSV to see all
+                    {t('cust.showingOf')} {filtered.length} {t('cust.useExport')}
                   </td>
                 </tr>
               )}

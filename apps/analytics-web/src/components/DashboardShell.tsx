@@ -14,37 +14,45 @@ import {
   ClipboardList,
   Tag,
   ArrowLeft,
+  Home,
 } from 'lucide-react';
 import { api, cn, getActiveStoreId, setActiveStoreId } from '@/lib/api';
+import { useT } from '@/lib/i18n';
+import { LanguageToggle } from '@/components/LanguageToggle';
+
+// Analytics is a separate app opened from the POS system (new tab) — this
+// lets the owner jump straight back to the POS dashboard.
+const POS_URL = process.env.NEXT_PUBLIC_POS_URL || 'http://localhost:3000/dashboard';
 
 // 6 core pages — all read live data from the shared POS database
 // (forecast / goals / auto-insights are folded into the Overview page)
 const NAV = [
   // How's today
-  { href: '/', label: 'Overview', icon: LayoutDashboard, group: 'now' },
-  { href: '/playbook', label: 'To-do today', icon: ClipboardList, group: 'now' },
+  { href: '/', labelKey: 'nav.overview', icon: LayoutDashboard, group: 'now' },
+  { href: '/playbook', labelKey: 'nav.playbook', icon: ClipboardList, group: 'now' },
 
   // Deep analysis
-  { href: '/customers', label: 'Customers', icon: Users, group: 'analyze' },
-  { href: '/menu', label: 'Menu performance', icon: Grid2x2, group: 'analyze' },
-  { href: '/promotions', label: 'Promotions', icon: Tag, group: 'analyze' },
+  { href: '/customers', labelKey: 'nav.customers', icon: Users, group: 'analyze' },
+  { href: '/menu', labelKey: 'nav.menu', icon: Grid2x2, group: 'analyze' },
+  { href: '/promotions', labelKey: 'nav.promotions', icon: Tag, group: 'analyze' },
 
   // Assistant
-  { href: '/assistant', label: 'Ask AI', icon: Bot, group: 'helper' },
+  { href: '/assistant', labelKey: 'nav.assistant', icon: Bot, group: 'helper' },
 ];
-
-const GROUP_LABELS: Record<string, string> = {
-  now: "How's today",
-  analyze: 'Deep analysis',
-  helper: 'Assistant',
-};
 
 const StoreContext = createContext<string>('');
 export const useStoreId = () => useContext(StoreContext);
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const t = useT();
   const [storeId, setStoreId] = useState<string | null>(null);
+
+  const GROUP_LABELS: Record<string, string> = {
+    now: t('shell.group.now'),
+    analyze: t('shell.group.analyze'),
+    helper: t('shell.group.helper'),
+  };
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -67,26 +75,26 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar — light theme + orange accent */}
       <aside className="w-60 shrink-0 flex flex-col border-r border-border bg-card">
         {/* Logo — กดเพื่อกลับหน้าภาพรวม */}
-        <Link
-          href="/"
-          className="px-5 py-5 flex items-center gap-2.5 border-b border-border hover:bg-muted/50 transition-colors"
-        >
-          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-sm">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <div className="min-w-0">
-            <div className="font-bold text-base tracking-tight">Analytics</div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Business Intelligence
+        <div className="px-5 py-5 flex items-center justify-between gap-2 border-b border-border">
+          <Link href="/" className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-sm shrink-0">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
-          </div>
-        </Link>
+            <div className="min-w-0">
+              <div className="font-bold text-base tracking-tight">Analytics</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                Business Intelligence
+              </div>
+            </div>
+          </Link>
+          <LanguageToggle />
+        </div>
 
         {/* Store selector — only a dropdown when there's more than one branch.
             For a single store we just show the name (read-only viewing, no setup). */}
         <div className="px-3 py-3 border-b border-border">
           <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 block px-1">
-            Viewing store
+            {t('shell.viewingStore')}
           </label>
           {stores.length > 1 ? (
             <div className="relative">
@@ -112,7 +120,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm">
               <Store className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <span className="truncate font-medium">
-                {activeStore?.name || stores[0]?.name || 'Connecting…'}
+                {activeStore?.name || stores[0]?.name || t('shell.connecting')}
               </span>
             </div>
           )}
@@ -145,7 +153,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       )}
                     >
                       <Icon className={cn('w-4 h-4 shrink-0', active ? '' : 'text-muted-foreground')} />
-                      <span>{item.label}</span>
+                      <span>{t(item.labelKey)}</span>
                     </Link>
                   );
                 })}
@@ -161,22 +169,29 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-y-auto scrollbar-thin min-w-0">
         {storeId ? (
           <StoreContext.Provider value={storeId}>
-            {/* "Home" bar — shown on every page except the Overview itself */}
-            {pathname !== '/' && (
-              <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-2.5">
+            {/* Sticky nav bar — Home (back to Overview) on every inner page,
+                and a link back to the POS system on every page including Overview */}
+            <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-2.5 flex items-center gap-4">
+              {pathname !== '/' && (
                 <Link
                   href="/"
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
                 >
-                  <ArrowLeft className="w-4 h-4" /> Home
+                  <ArrowLeft className="w-4 h-4" /> {t('shell.home')}
                 </Link>
-              </div>
-            )}
+              )}
+              <a
+                href={POS_URL}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Home className="w-4 h-4" /> {t('shell.backToPos')}
+              </a>
+            </div>
             {children}
           </StoreContext.Provider>
         ) : (
           <div className="flex items-center justify-center h-screen text-muted-foreground text-sm">
-            Loading store data…
+            {t('shell.loadingStore')}
           </div>
         )}
       </main>
@@ -186,6 +201,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
 /** Footer that pings the API every 30s and shows a live health indicator. */
 function ServiceStatusFooter({ activeStore, storeId }: { activeStore: any; storeId: string | null }) {
+  const t = useT();
   const { data: health, error } = useQuery({
     queryKey: ['health', storeId],
     queryFn: () =>
@@ -210,12 +226,12 @@ function ServiceStatusFooter({ activeStore, storeId }: { activeStore: any; store
           )}
         />
         <span className="truncate flex-1">
-          {isUp ? 'Connected' : isDown ? 'Service offline' : 'Connecting…'}
+          {isUp ? t('shell.connected') : isDown ? t('shell.offline') : t('shell.connecting')}
         </span>
       </div>
       {isDown && (
         <div className="rounded-md bg-danger/10 border border-danger/30 p-2 text-[10px] leading-relaxed text-danger">
-          analytics-api not responding — run:
+          {t('shell.offlineHint')}
           <code className="block mt-1 bg-card px-1.5 py-1 rounded font-mono text-foreground/90 break-all">
             cd apps/analytics-api &amp;&amp; uvicorn app.main:app --port 8000
           </code>
@@ -223,17 +239,17 @@ function ServiceStatusFooter({ activeStore, storeId }: { activeStore: any; store
       )}
       {isUp && health.orders > 0 && (
         <div className="text-[10px] text-muted-foreground tabular-nums">
-          {health.orders.toLocaleString()} orders · 30 days
+          {health.orders.toLocaleString()} {t('shell.ordersDays')}
         </div>
       )}
       {isUp && health.orders === 0 && (
         <div className="rounded-md bg-warning/10 border border-warning/30 p-2 text-[10px] leading-relaxed">
-          No order data yet — run{' '}
-          <code className="bg-card px-1 rounded">npm run db:seed:mock</code> in apps/api
+          {t('shell.noOrders')}{' '}
+          <code className="bg-card px-1 rounded">npm run db:seed:mock</code> {t('shell.inApiDir')}
         </div>
       )}
       <div className="text-[10px] text-muted-foreground truncate">
-        Store: {activeStore?.name || '…'}
+        {t('shell.storeLabel')}: {activeStore?.name || '…'}
       </div>
     </div>
   );

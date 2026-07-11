@@ -3,11 +3,13 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import { formatCurrency, formatDate } from '@/lib/api';
+import { useT, useLang } from '@/lib/i18n';
 
 export function RevenueChart({ data }: { data: any[] }) {
+  const t = useT();
   return (
     <div className="bg-card border border-border rounded-lg p-5">
-      <h3 className="text-sm font-medium mb-4">Revenue trend</h3>
+      <h3 className="text-sm font-medium mb-4">{t('ov.revenueTrend')}</h3>
       <ResponsiveContainer width="100%" height={260}>
         <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: -10 }}>
           <defs>
@@ -41,7 +43,7 @@ export function RevenueChart({ data }: { data: any[] }) {
               boxShadow: '0 4px 12px -2px rgba(0,0,0,0.08)',
             }}
             labelFormatter={formatDate}
-            formatter={(v: any) => [formatCurrency(v), 'Revenue']}
+            formatter={(v: any) => [formatCurrency(v), t('chart.revenueLabel')]}
           />
           <Area
             type="monotone"
@@ -57,9 +59,13 @@ export function RevenueChart({ data }: { data: any[] }) {
 }
 
 // Heatmap
-const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const DOW_EN = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const DOW_TH = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 
 export function SalesHeatmap({ data }: { data: any[] }) {
+  const t = useT();
+  const { lang } = useLang();
+  const DOW = lang === 'th' ? DOW_TH : DOW_EN;
   const max = Math.max(...data.map((d) => d.orders), 1);
 
   const getCell = (dow: number, hour: number) => {
@@ -71,7 +77,7 @@ export function SalesHeatmap({ data }: { data: any[] }) {
 
   return (
     <div className="bg-card border border-border rounded-lg p-5">
-      <h3 className="text-sm font-medium mb-4">Peak hours</h3>
+      <h3 className="text-sm font-medium mb-4">{t('chart.peakHours')}</h3>
       <div className="overflow-x-auto scrollbar-thin">
         <table className="w-full">
           <thead>
@@ -103,7 +109,7 @@ export function SalesHeatmap({ data }: { data: any[] }) {
                               ? '#F3F4F6'
                               : `rgba(255, 107, 53, ${0.15 + intensity * 0.75})`,
                         }}
-                        title={`${DOW[dow]} ${h}:00 — ${val} orders`}
+                        title={`${DOW[dow]} ${h}:00 — ${val} ${t('chart.ordersWord')}`}
                       />
                     </td>
                   );
@@ -118,10 +124,11 @@ export function SalesHeatmap({ data }: { data: any[] }) {
 }
 
 export function TopProductsCard({ data }: { data: any[] }) {
+  const t = useT();
   const maxRev = Math.max(...data.map((d) => d.revenue), 1);
   return (
     <div className="bg-card border border-border rounded-lg p-5">
-      <h3 className="text-sm font-medium mb-4">Top products</h3>
+      <h3 className="text-sm font-medium mb-4">{t('ov.topProducts')}</h3>
       <div className="space-y-3">
         {data.slice(0, 8).map((p, i) => (
           <div key={p.id}>

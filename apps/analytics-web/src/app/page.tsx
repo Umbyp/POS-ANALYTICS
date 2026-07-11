@@ -3,14 +3,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
-import { Package, TrendingUp, Clock, Calendar, Sparkles, Target, Loader2, RefreshCw, DollarSign, PiggyBank, ShoppingBag, Receipt } from 'lucide-react';
-import { DashboardShell, useStoreId } from '@/components/DashboardShell';
+import { Package, TrendingUp, Clock, Calendar, Sparkles, Target, Loader2, RefreshCw } from 'lucide-react';
+import { useStoreId } from '@/components/DashboardShell';
 import { KpiCard, KpiSkeleton } from '@/components/dashboard/KpiCard';
 import { RevenueChart, SalesHeatmap, TopProductsCard } from '@/components/dashboard/Charts';
 import { InsightCard } from '@/components/dashboard/InsightCard';
 import { api, formatCurrency, formatNumber, formatDate, cn } from '@/lib/api';
+import { useT, useLang } from '@/lib/i18n';
 
 function TodayBanner({ storeId }: { storeId: string }) {
+  const t = useT();
+  const { lang } = useLang();
   const { data: kpiToday, isLoading } = useQuery({
     queryKey: ['today', storeId],
     queryFn: () => api.get('/api/analytics/today', { params: { store_id: storeId } }).then((r) => r.data),
@@ -23,8 +26,12 @@ function TodayBanner({ storeId }: { storeId: string }) {
   });
 
   const now = new Date();
-  const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
-  const dateStr = `${dayName}, ${now.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+  const dateStr = new Intl.DateTimeFormat(lang === 'th' ? 'th-TH' : 'en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(now);
   const lowStockCount = inv.filter((i: any) => i.days_until_out != null && i.days_until_out <= 7).length;
   const criticalCount = inv.filter((i: any) => i.days_until_out != null && i.days_until_out <= 3).length;
 
@@ -36,10 +43,10 @@ function TodayBanner({ storeId }: { storeId: string }) {
         {/* Date + title */}
         <div>
           <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-            Real-time
+            {t('ov.realtime')}
           </div>
           <h2 className="text-base font-medium">{dateStr}</h2>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Updates every minute</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{t('ov.updatesEveryMinute')}</p>
         </div>
 
         {/* Stats row */}
@@ -50,25 +57,25 @@ function TodayBanner({ storeId }: { storeId: string }) {
         ) : (
           <div className="flex flex-wrap gap-3">
             <TodayStatChip
-              label="Revenue today"
+              label={t('ov.revenueToday')}
               value={formatCurrency(kpiToday?.revenue || 0)}
               change={growth}
             />
             <TodayStatChip
-              label="Orders today"
-              value={`${kpiToday?.order_count || 0} orders`}
+              label={t('ov.ordersToday')}
+              value={`${kpiToday?.order_count || 0} ${t('ov.orders')}`}
               change={kpiToday?.yesterday_orders
                 ? Math.round(((kpiToday.order_count - kpiToday.yesterday_orders) / kpiToday.yesterday_orders) * 100)
                 : undefined}
             />
             <TodayStatChip
-              label="Avg / bill"
+              label={t('ov.avgBill')}
               value={formatCurrency(kpiToday?.avg_ticket || 0)}
             />
             {criticalCount > 0 && (
               <TodayStatChip
-                label="Critical stock"
-                value={`${criticalCount} items`}
+                label={t('ov.criticalStock')}
+                value={`${criticalCount} ${t('ai.items')}`}
                 alert
               />
             )}
@@ -81,8 +88,8 @@ function TodayBanner({ storeId }: { storeId: string }) {
         <div className="bg-warning/10 border-t border-warning/30 px-5 py-2.5 flex items-center gap-2">
           <Package className="w-3.5 h-3.5 text-warning shrink-0" />
           <span className="text-xs text-warning">
-            <strong>{lowStockCount} item(s)</strong> will run out within 7 days —{' '}
-            <a href="/assistant" className="underline">ask AI what to reorder</a>
+            <strong>{lowStockCount}</strong> {t('ov.itemsRunOut')}{' '}
+            <a href="/assistant" className="underline">{t('ov.askAiReorder')}</a>
           </span>
         </div>
       )}
@@ -91,6 +98,7 @@ function TodayBanner({ storeId }: { storeId: string }) {
 }
 
 function TodayStatChip({ label, value, change, alert }: { label: string; value: string; change?: number; alert?: boolean }) {
+  const t = useT();
   const isUp = (change ?? 0) >= 0;
   return (
     <div className={cn(
@@ -102,7 +110,7 @@ function TodayStatChip({ label, value, change, alert }: { label: string; value: 
       {change !== undefined && (
         <div className={cn('text-[10px] mt-0.5 tabular-nums', isUp ? 'text-success' : 'text-danger')}>
           {isUp ? '+' : ''}{change.toFixed(1)}%
-          <span className="text-muted-foreground ml-1">vs yesterday</span>
+          <span className="text-muted-foreground ml-1">{t('ov.vsYesterday')}</span>
         </div>
       )}
     </div>
@@ -111,8 +119,10 @@ function TodayStatChip({ label, value, change, alert }: { label: string; value: 
 
 /** Compact monthly-goal tracker — folded in from the old /goal page. */
 function GoalStrip({ storeId }: { storeId: string }) {
+  const t = useT();
+  const { lang } = useLang();
   const { data } = useQuery({
-    queryKey: ['goal-coach', storeId],
+    queryKey: ['goal-coach', storeId, lang],
     queryFn: () => api.get('/api/goal-coach', { params: { store_id: storeId } }).then((r) => r.data),
     enabled: !!storeId,
     refetchInterval: 60_000,
@@ -128,9 +138,9 @@ function GoalStrip({ storeId }: { storeId: string }) {
     <div className="bg-card border border-border rounded-lg p-5">
       <div className="flex items-center gap-2 mb-3">
         <Target className={cn('w-4 h-4', onTrack ? 'text-success' : 'text-warning')} />
-        <h3 className="text-sm font-medium">This month&apos;s goal</h3>
+        <h3 className="text-sm font-medium">{t('ov.goalTitle')}</h3>
         <span className="text-[11px] text-muted-foreground">
-          {data.days_passed}/{data.days_in_month} days in · {data.days_left} left
+          {data.days_passed}/{data.days_in_month} {t('ov.daysIn')} · {data.days_left} {t('ov.daysLeft')}
         </span>
         <span className={cn('ml-auto text-lg font-semibold tabular-nums', onTrack ? 'text-success' : 'text-warning')}>
           {data.progress_pct.toFixed(0)}%
@@ -145,14 +155,14 @@ function GoalStrip({ storeId }: { storeId: string }) {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-        <GoalStat label="Achieved" value={formatCurrency(data.actual)} />
-        <GoalStat label="Target" value={formatCurrency(data.target)} muted />
+        <GoalStat label={t('ov.achieved')} value={formatCurrency(data.actual)} />
+        <GoalStat label={t('ov.target')} value={formatCurrency(data.target)} muted />
         <GoalStat
-          label="Needed / day"
+          label={t('ov.neededPerDay')}
           value={formatCurrency(data.needed_daily)}
           accent={onTrack ? 'text-success' : 'text-warning'}
         />
-        <GoalStat label="Projected" value={formatCurrency(data.projected_total)} />
+        <GoalStat label={t('ov.projected')} value={formatCurrency(data.projected_total)} />
       </div>
     </div>
   );
@@ -171,6 +181,7 @@ function GoalStat({ label, value, accent, muted }: { label: string; value: strin
 
 /** Revenue forecast — folded in from the old /forecast page. */
 function ForecastSection({ storeId }: { storeId: string }) {
+  const t = useT();
   const { data: revenue, isLoading: revLoading } = useQuery({
     queryKey: ['fc-revenue', storeId],
     queryFn: () => api.get('/api/forecast/revenue', { params: { store_id: storeId, days_ahead: 30 } }).then((r) => r.data),
@@ -191,27 +202,27 @@ function ForecastSection({ storeId }: { storeId: string }) {
     <div className="space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <FcCard
-          label="Forecast revenue (next 30 days)"
+          label={t('ov.forecastRevenue30')}
           icon={<TrendingUp className="w-4 h-4" />}
           loading={revLoading}
           value={revenue ? formatCurrency(revenue.total_predicted || 0) : null}
           accent="text-primary"
-          sub={revenue?.total_predicted ? `≈ ${formatCurrency((revenue.total_predicted || 0) / 30)}/day` : undefined}
+          sub={revenue?.total_predicted ? `≈ ${formatCurrency((revenue.total_predicted || 0) / 30)}${t('fc.perDaySuffix')}` : undefined}
         />
         <FcCard
-          label="History used"
+          label={t('ov.historyUsed')}
           icon={<Calendar className="w-4 h-4" />}
           loading={revLoading}
-          value={actualPoints > 0 ? `${actualPoints} days` : null}
-          sub={actualPoints < 14 ? 'Too little — may be inaccurate' : actualPoints < 30 ? 'Decent' : 'Enough data'}
+          value={actualPoints > 0 ? `${actualPoints} ${t('ov.days')}` : null}
+          sub={actualPoints < 14 ? t('ov.tooLittle') : actualPoints < 30 ? t('ov.decent') : t('ov.enoughData')}
         />
         <FcCard
-          label="Busiest hours"
+          label={t('ov.busiestHours')}
           icon={<Clock className="w-4 h-4" />}
           loading={peakLoading}
           value={peak?.peak_hours?.length ? peak.peak_hours.map((p: any) => `${p.hour}:00`).join(', ') : null}
           accent="text-success"
-          sub={peak?.peak_hours?.length ? `${peak.peak_hours.reduce((s: number, p: any) => s + p.orders, 0)} orders total` : undefined}
+          sub={peak?.peak_hours?.length ? `${peak.peak_hours.reduce((s: number, p: any) => s + p.orders, 0)} ${t('ov.ordersTotal')}` : undefined}
         />
       </div>
 
@@ -219,16 +230,16 @@ function ForecastSection({ storeId }: { storeId: string }) {
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <div>
             <h3 className="font-medium flex items-center gap-2 text-sm">
-              <Sparkles className="w-4 h-4 text-primary" /> Revenue forecast — next 30 days
+              <Sparkles className="w-4 h-4 text-primary" /> {t('fc.sectionTitle')}
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Solid line = actual · orange dashed = forecast
+              {t('fc.legendNote')}
             </p>
           </div>
           {series.length > 0 && (
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <FcLegend color="#FF6B35" label="Forecast" />
-              <FcLegend color="#FED7AA" label="Confidence band" />
+              <FcLegend color="#FF6B35" label={t('fc.legendForecast')} />
+              <FcLegend color="#FED7AA" label={t('fc.legendBand')} />
             </div>
           )}
         </div>
@@ -238,9 +249,9 @@ function ForecastSection({ storeId }: { storeId: string }) {
         ) : series.length === 0 ? (
           <div className="h-[320px] flex flex-col items-center justify-center text-center px-6">
             <Sparkles className="w-10 h-10 text-muted-foreground/40 mb-3" />
-            <div className="font-medium mb-1">Not enough data to forecast yet</div>
+            <div className="font-medium mb-1">{t('fc.notEnoughData')}</div>
             <div className="text-xs text-muted-foreground max-w-sm">
-              Need at least 7–14 days of orders; currently {actualPoints} days
+              {t('fc.needAtLeastPrefix')} {actualPoints} {t('ov.days')}
             </div>
           </div>
         ) : (
@@ -286,7 +297,7 @@ function ForecastSection({ storeId }: { storeId: string }) {
                   x={firstForecast}
                   stroke="#F59E0B"
                   strokeDasharray="4 4"
-                  label={{ value: 'Today', fill: '#F59E0B', fontSize: 10, position: 'top' }}
+                  label={{ value: t('fc.today'), fill: '#F59E0B', fontSize: 10, position: 'top' }}
                 />
               )}
               <Area dataKey="upper" stroke="none" fill="url(#band)" name="Upper" />
@@ -299,7 +310,7 @@ function ForecastSection({ storeId }: { storeId: string }) {
 
         {series.length > 0 && (
           <div className="mt-4 pt-3 border-t border-border text-xs text-muted-foreground">
-            {actualPoints} days history · {forecastPoints} days forecast
+            {actualPoints} {t('ov.days')} {t('fc.historyLabel')} · {forecastPoints} {t('ov.days')} {t('fc.forecastLabel')}
           </div>
         )}
       </div>
@@ -342,9 +353,11 @@ function FcLegend({ color, label }: { color: string; label: string }) {
 
 /** Auto insights — folded in from the old /insights page (with inline generate). */
 function InsightsPanel({ storeId }: { storeId: string }) {
+  const t = useT();
+  const { lang } = useLang();
   const qc = useQueryClient();
   const { data: insights = [], isLoading } = useQuery({
-    queryKey: ['insights', storeId],
+    queryKey: ['insights', storeId, lang],
     queryFn: () => api.get('/api/insights', { params: { store_id: storeId, limit: 5 } }).then((r) => r.data),
     enabled: !!storeId,
   });
@@ -358,7 +371,7 @@ function InsightsPanel({ storeId }: { storeId: string }) {
     <div className="bg-card border border-border rounded-lg p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary" /> Auto insights
+          <Sparkles className="w-4 h-4 text-primary" /> {t('ins.autoInsights')}
         </h3>
         <button
           onClick={() => generate.mutate()}
@@ -370,7 +383,7 @@ function InsightsPanel({ storeId }: { storeId: string }) {
           ) : (
             <RefreshCw className="w-3 h-3" />
           )}
-          Re-analyze
+          {t('ins.reanalyze')}
         </button>
       </div>
       {isLoading ? (
@@ -379,7 +392,7 @@ function InsightsPanel({ storeId }: { storeId: string }) {
         </div>
       ) : insights.length === 0 ? (
         <div className="text-sm text-muted-foreground py-8 text-center">
-          No insights yet — tap <b>Re-analyze</b> to have AI summarize the highlights and things to watch
+          {t('ins.noInsightsPrefix')}<b>{t('ins.reanalyze')}</b>{t('ins.noInsightsSuffix')}
         </div>
       ) : (
         <div className="space-y-2">
@@ -393,6 +406,7 @@ function InsightsPanel({ storeId }: { storeId: string }) {
 }
 
 function DashboardContent() {
+  const t = useT();
   const storeId = useStoreId();
 
   const { data: kpi, isLoading: kpiLoading } = useQuery({
@@ -417,14 +431,14 @@ function DashboardContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
-          <p className="text-muted-foreground text-xs mt-0.5">Today&apos;s snapshot + last 30 days + forecast ahead</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t('ov.title')}</h1>
+          <p className="text-muted-foreground text-xs mt-0.5">{t('ov.subtitle')}</p>
         </div>
         <a
           href="/assistant"
           className="px-3 py-1.5 text-xs border border-border bg-card hover:bg-card-hover rounded-md transition-colors"
         >
-          Ask AI →
+          {t('ov.askAi')} →
         </a>
       </div>
 
@@ -437,7 +451,7 @@ function DashboardContent() {
       {/* KPI 30-day */}
       <div>
         <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-3">
-          Last 30 days
+          {t('ov.last30days')}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {kpiLoading ? (
@@ -445,30 +459,31 @@ function DashboardContent() {
           ) : (
             <>
               <KpiCard
-                label="Total revenue"
+                label={t('ov.totalRevenue')}
                 value={formatCurrency(kpi?.revenue || 0)}
                 change={kpi?.revenue_growth}
-                icon={<DollarSign className="w-5 h-5" />}
+                mark="REV"
+                accent="text-primary border-primary/25 bg-primary/5"
                 sparkline={daily.slice(-14).map((d: any) => Number(d.revenue) || 0)}
               />
               <KpiCard
-                label="Gross profit"
+                label={t('ov.grossProfit')}
                 value={formatCurrency(kpi?.gross_profit || 0)}
-                icon={<PiggyBank className="w-5 h-5" />}
-                accent="bg-success/10 text-success"
+                mark="NET"
+                accent="text-success border-success/25 bg-success/5"
                 sparkline={daily.slice(-14).map((d: any) => Number(d.revenue) * 0.4 || 0)}
               />
               <KpiCard
-                label="Orders"
+                label={t('ov.orders')}
                 value={formatNumber(kpi?.order_count || 0)}
-                icon={<ShoppingBag className="w-5 h-5" />}
-                accent="bg-accent/10 text-accent"
+                mark="QTY"
+                accent="text-accent border-accent/25 bg-accent/5"
                 sparkline={daily.slice(-14).map((d: any) => Number(d.order_count) || Number(d.orders) || 0)}
               />
               <KpiCard
-                label="Avg per bill"
+                label={t('ov.avgPerBill')}
                 value={formatCurrency(kpi?.avg_ticket || 0)}
-                icon={<Receipt className="w-5 h-5" />}
+                mark="AVG"
               />
             </>
           )}
@@ -496,9 +511,5 @@ function DashboardContent() {
 }
 
 export default function Page() {
-  return (
-    <DashboardShell>
-      <DashboardContent />
-    </DashboardShell>
-  );
+  return <DashboardContent />;
 }
