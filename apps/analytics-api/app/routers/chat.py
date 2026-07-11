@@ -19,11 +19,12 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str | None = None
     history: list[ChatMessage] = []
+    lang: str = "th"
 
 
 @router.get("/suggestions")
-def suggestions():
-    return {"questions": ai_service.get_suggested_questions()}
+def suggestions(lang: str = "th"):
+    return {"questions": ai_service.get_suggested_questions(lang=lang)}
 
 
 @router.post("/stream")
@@ -36,7 +37,7 @@ async def chat_stream(req: ChatRequest):
 
     async def generate():
         full_response = ""
-        async for chunk in ai_service.stream_chat(req.store_id, req.message, history):
+        async for chunk in ai_service.stream_chat(req.store_id, req.message, history, lang=req.lang):
             full_response += chunk
             yield chunk
 

@@ -14,12 +14,13 @@ import google.generativeai as genai
 
 from ..config import settings
 from . import data_service, forecast_service, recommendation_service
+from ..i18n import pick
 
 if settings.GEMINI_API_KEY:
     genai.configure(api_key=settings.GEMINI_API_KEY)
 
 
-SYSTEM_PROMPT = """คุณคือ "POS AI" ผู้ช่วยธุรกิจร้านค้า/ร้านอาหาร
+SYSTEM_PROMPT_TH = """คุณคือ "POS AI" ผู้ช่วยธุรกิจร้านค้า/ร้านอาหาร
 
 หลักการ:
 - ตอบไทย กระชับ เหมือนผู้จัดการมืออาชีพ
@@ -28,6 +29,20 @@ SYSTEM_PROMPT = """คุณคือ "POS AI" ผู้ช่วยธุรก
 - จบด้วย action ที่ทำได้ทันที
 - ถ้าข้อมูลไม่พอ บอกตรงๆ + แนะนำสิ่งที่ผู้ใช้ควรถามต่อ
 """
+
+SYSTEM_PROMPT_EN = """You are "POS AI", a business assistant for a retail/restaurant store.
+
+Principles:
+- Answer in English, concise, like a professional manager.
+- Only cite numbers from the given context — never make numbers up.
+- Use emoji for readability (✅ ⚠️ 🔴 📦 💰 ⏰ 📊)
+- End with an action the owner can take right now.
+- If the data isn't enough, say so plainly and suggest what to ask next.
+"""
+
+
+def _system_prompt(lang: str) -> str:
+    return pick(lang, SYSTEM_PROMPT_TH, SYSTEM_PROMPT_EN)
 
 
 # ============================================================
@@ -332,31 +347,36 @@ def build_context(store_id: str, intents: set[str]) -> tuple[str, list[str]]:
 # Prompt assembly
 # ============================================================
 
-def build_full_prompt(store_id: str, message: str, history: list[dict]) -> tuple[str, dict]:
+def build_full_prompt(store_id: str, message: str, history: list[dict], lang: str = "th") -> tuple[str, dict]:
     intents = detect_intents(message)
     ctx, used_blocks = build_context(store_id, intents)
 
     # ตัด history เหลือ 4 ล่าสุดเพื่อประหยัด token
     convo_lines = []
     for h in history[-4:]:
-        role = "ผู้ใช้" if h["role"] == "user" else "ผู้ช่วย"
+        role = pick(lang, "ผู้ใช้" if h["role"] == "user" else "ผู้ช่วย", "User" if h["role"] == "user" else "Assistant")
         # ตัดข้อความเก่าให้สั้น (200 ตัวอักษร)
         content = h["content"][:200] + ("..." if len(h["content"]) > 200 else "")
         convo_lines.append(f"{role}: {content}")
-    convo = "\n".join(convo_lines) if convo_lines else "(ไม่มี)"
+    convo = "\n".join(convo_lines) if convo_lines else pick(lang, "(ไม่มี)", "(none)")
 
-    prompt = f"""{SYSTEM_PROMPT}
+    section_data = pick(lang, "ข้อมูลธุรกิจ", "Business data")
+    section_convo = pick(lang, "บทสนทนาก่อนหน้า", "Previous conversation")
+    section_q = pick(lang, "คำถาม", "Question")
+    section_a = pick(lang, "ตอบ", "Answer")
 
-=== ข้อมูลธุรกิจ ===
+    prompt = f"""{_system_prompt(lang)}
+
+=== {section_data} ===
 {ctx}
 
-=== บทสนทนาก่อนหน้า ===
+=== {section_convo} ===
 {convo}
 
-=== คำถาม ===
+=== {section_q} ===
 {message}
 
-ตอบ:"""
+{section_a}:"""
 
     meta = {
         "intents": sorted(intents),
@@ -371,8 +391,8 @@ def build_full_prompt(store_id: str, message: str, history: list[dict]) -> tuple
 # Streaming chat
 # ============================================================
 
-async def stream_chat(store_id: str, message: str, history: list[dict]):
-    prompt, meta = build_full_prompt(store_id, message, history)
+async def stream_chat(store_id: str, message: str, history: list[dict], lang: str = "th"):
+    prompt, meta = build_full_prompt(store_id, message, history, lang=lang)
     print(f"[AI] intents={meta['intents']} blocks={meta['blocks_used']} ~{meta['approx_tokens']} tokens")
 
     # ---- Gemini ----
@@ -389,6 +409,7 @@ async def stream_chat(store_id: str, message: str, history: list[dict]):
 
     # ---- OpenRouter fallback ----
     if settings.OPENROUTER_API_KEY:
+        yielded = False
         try:
             async with httpx.AsyncClient(timeout=60) as client:
                 async with client.stream(
@@ -398,12 +419,15 @@ async def stream_chat(store_id: str, message: str, history: list[dict]):
                     json={
                         "model": settings.OPENROUTER_MODEL,
                         "messages": [
-                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {"role": "system", "content": _system_prompt(lang)},
                             {"role": "user", "content": prompt},
                         ],
                         "stream": True,
                     },
                 ) as response:
+                    if response.status_code != 200:
+                        body = await response.aread()
+                        raise RuntimeError(f"HTTP {response.status_code}: {body.decode(errors='replace')[:300]}")
                     async for line in response.aiter_lines():
                         if line.startswith("data: "):
                             data = line[6:]
@@ -413,24 +437,44 @@ async def stream_chat(store_id: str, message: str, history: list[dict]):
                                 obj = json.loads(data)
                                 delta = obj["choices"][0]["delta"].get("content", "")
                                 if delta:
+                                    yielded = True
                                     yield delta
                             except Exception:
                                 continue
-            return
+            if yielded:
+                return
+            print("[WARN] OpenRouter returned no content — falling through to unavailable message")
         except Exception as e:
             print(f"[WARN] OpenRouter failed: {e}")
 
-    yield "ขออภัย ระบบ AI ไม่พร้อมใช้งาน (ยังไม่ได้ตั้งค่า GEMINI_API_KEY หรือ OPENROUTER_API_KEY)"
+    yield pick(
+        lang,
+        "ขออภัย ระบบ AI ไม่พร้อมใช้งาน (ยังไม่ได้ตั้งค่า GEMINI_API_KEY หรือ OPENROUTER_API_KEY)",
+        "Sorry, the AI system isn't available (GEMINI_API_KEY / OPENROUTER_API_KEY isn't set)",
+    )
 
 
-def get_suggested_questions() -> list[str]:
-    return [
-        "วันนี้ยอดขายเป็นอย่างไร เทียบเมื่อวานด้วย",
-        "สินค้าไหนต้องสั่งด่วนวันนี้?",
-        "พนักงานวันนี้ต้องทำอะไรบ้าง?",
-        "สินค้าไหนทำกำไรมากที่สุด 30 วันที่ผ่านมา?",
-        "ช่วงเวลาไหนลูกค้าเยอะที่สุด?",
-        "วิเคราะห์ธุรกิจและแนะนำว่าควรปรับอะไร?",
-        "พยากรณ์รายได้เดือนหน้า",
-        "ควรจัดโปรโมชันสินค้าอะไร?",
-    ]
+def get_suggested_questions(lang: str = "th") -> list[str]:
+    return pick(
+        lang,
+        [
+            "วันนี้ยอดขายเป็นอย่างไร เทียบเมื่อวานด้วย",
+            "สินค้าไหนต้องสั่งด่วนวันนี้?",
+            "พนักงานวันนี้ต้องทำอะไรบ้าง?",
+            "สินค้าไหนทำกำไรมากที่สุด 30 วันที่ผ่านมา?",
+            "ช่วงเวลาไหนลูกค้าเยอะที่สุด?",
+            "วิเคราะห์ธุรกิจและแนะนำว่าควรปรับอะไร?",
+            "พยากรณ์รายได้เดือนหน้า",
+            "ควรจัดโปรโมชันสินค้าอะไร?",
+        ],
+        [
+            "How are today's sales? Compare with yesterday too.",
+            "Which products urgently need reordering today?",
+            "What should staff focus on today?",
+            "Which products made the most profit in the last 30 days?",
+            "Which hours have the most customers?",
+            "Analyze the business and suggest what to improve.",
+            "Forecast next month's revenue.",
+            "What promotion should I run?",
+        ],
+    )

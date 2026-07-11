@@ -12,12 +12,13 @@ from sqlalchemy import text
 
 from . import data_service, forecast_service
 from .. import database
+from ..i18n import pick
 
 
-def _save_insight(store_id: str, insight: dict):
+def _save_insight(store_id: str, insight: dict, lang: str = "th"):
     q = text("""
-        INSERT INTO ai_insights (store_id, type, severity, title, description, metric, metadata)
-        VALUES (:store_id, :type, :severity, :title, :description, :metric, :metadata)
+        INSERT INTO ai_insights (store_id, type, severity, title, description, metric, metadata, lang)
+        VALUES (:store_id, :type, :severity, :title, :description, :metric, :metadata, :lang)
     """)
     with database.engine.begin() as conn:
         conn.execute(q, {
@@ -28,13 +29,14 @@ def _save_insight(store_id: str, insight: dict):
             "description": insight["description"],
             "metric": insight.get("metric"),
             "metadata": json.dumps(insight.get("metadata")) if insight.get("metadata") else None,
+            "lang": lang,
         })
 
 
 # ─────────────────────────────────────────────────────────
 # 1. TREND — ยอดขาย 2 สัปดาห์
 # ─────────────────────────────────────────────────────────
-def detect_trend_insights(store_id: str) -> list[dict]:
+def detect_trend_insights(store_id: str, lang: str = "th") -> list[dict]:
     insights = []
     df = data_service.get_daily_sales(store_id, days=28)
     if len(df) < 14:
@@ -50,11 +52,15 @@ def detect_trend_insights(store_id: str) -> list[dict]:
         if change <= -15:
             insights.append({
                 "type": "TREND", "severity": "WARNING",
-                "title": f"ยอดขายลดลง {abs(change):.0f}% ใน 2 สัปดาห์",
-                "description": (
+                "title": pick(lang, f"ยอดขายลดลง {abs(change):.0f}% ใน 2 สัปดาห์", f"Sales down {abs(change):.0f}% over 2 weeks"),
+                "description": pick(
+                    lang,
                     f"ยอดขาย 2 สัปดาห์ล่าสุด {recent:,.0f} บาท ลดลง {abs(change):.0f}% "
                     f"จากช่วงก่อนหน้า ({older:,.0f} บาท) "
-                    "ควรตรวจสอบสาเหตุและวางแผนกระตุ้นยอดขาย"
+                    "ควรตรวจสอบสาเหตุและวางแผนกระตุ้นยอดขาย",
+                    f"The last 2 weeks brought in {recent:,.0f}฿, down {abs(change):.0f}% "
+                    f"from the prior period ({older:,.0f}฿). "
+                    "Investigate the cause and plan a sales push.",
                 ),
                 "metric": round(change, 1),
                 "metadata": {"recent": round(recent, 0), "older": round(older, 0)},
@@ -62,10 +68,13 @@ def detect_trend_insights(store_id: str) -> list[dict]:
         elif change >= 15:
             insights.append({
                 "type": "TREND", "severity": "INFO",
-                "title": f"ยอดขายเติบโต {change:.0f}% ในรอบ 2 สัปดาห์",
-                "description": (
+                "title": pick(lang, f"ยอดขายเติบโต {change:.0f}% ในรอบ 2 สัปดาห์", f"Sales grew {change:.0f}% over 2 weeks"),
+                "description": pick(
+                    lang,
                     f"ยอดขาย 2 สัปดาห์ล่าสุด {recent:,.0f} บาท เพิ่มขึ้น {change:.0f}% "
-                    "เทรนด์เป็นบวก — วิเคราะห์ว่าอะไรทำให้ดีขึ้นเพื่อทำซ้ำ"
+                    "เทรนด์เป็นบวก — วิเคราะห์ว่าอะไรทำให้ดีขึ้นเพื่อทำซ้ำ",
+                    f"The last 2 weeks brought in {recent:,.0f}฿, up {change:.0f}%. "
+                    "A positive trend — figure out what's working so you can repeat it.",
                 ),
                 "metric": round(change, 1),
             })
@@ -75,7 +84,7 @@ def detect_trend_insights(store_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────
 # 2. ANOMALY — z-score รายวัน
 # ─────────────────────────────────────────────────────────
-def detect_anomaly_insights(store_id: str) -> list[dict]:
+def detect_anomaly_insights(store_id: str, lang: str = "th") -> list[dict]:
     insights = []
     df = data_service.get_daily_sales(store_id, days=30)
     if len(df) < 10:
@@ -93,22 +102,30 @@ def detect_anomaly_insights(store_id: str) -> list[dict]:
     if z <= -2:
         insights.append({
             "type": "ANOMALY", "severity": "CRITICAL",
-            "title": "ยอดขายวันล่าสุดต่ำผิดปกติ",
-            "description": (
+            "title": pick(lang, "ยอดขายวันล่าสุดต่ำผิดปกติ", "Latest day's sales are abnormally low"),
+            "description": pick(
+                lang,
                 f"วันที่ {date_str} มียอดขาย {last['revenue']:,.0f} บาท "
                 f"ต่ำกว่าค่าเฉลี่ย {mean:,.0f} บาท อย่างมีนัยสำคัญ (z={z:.1f}) "
-                "ตรวจสอบว่าร้านปิดครึ่งวัน ระบบล่ม หรือมีเหตุพิเศษ"
+                "ตรวจสอบว่าร้านปิดครึ่งวัน ระบบล่ม หรือมีเหตุพิเศษ",
+                f"On {date_str}, revenue was {last['revenue']:,.0f}฿ — "
+                f"significantly below the average of {mean:,.0f}฿ (z={z:.1f}). "
+                "Check for a half-day closure, system outage, or other special cause.",
             ),
             "metric": round(float(z), 2),
         })
     elif z >= 2:
         insights.append({
             "type": "ANOMALY", "severity": "INFO",
-            "title": "ยอดขายวันล่าสุดสูงผิดปกติ — โอกาสเรียนรู้",
-            "description": (
+            "title": pick(lang, "ยอดขายวันล่าสุดสูงผิดปกติ — โอกาสเรียนรู้", "Latest day's sales are abnormally high — a learning opportunity"),
+            "description": pick(
+                lang,
                 f"วันที่ {date_str} มียอดขาย {last['revenue']:,.0f} บาท "
                 f"สูงกว่าค่าเฉลี่ย {mean:,.0f} บาท มาก (z={z:.1f}) "
-                "วิเคราะห์ว่าอะไรทำให้ดี — event พิเศษ? โปรโมชัน? เพื่อทำซ้ำ"
+                "วิเคราะห์ว่าอะไรทำให้ดี — event พิเศษ? โปรโมชัน? เพื่อทำซ้ำ",
+                f"On {date_str}, revenue was {last['revenue']:,.0f}฿ — "
+                f"well above the average of {mean:,.0f}฿ (z={z:.1f}). "
+                "Figure out what drove it — a special event? a promotion? — so you can repeat it.",
             ),
             "metric": round(float(z), 2),
         })
@@ -118,7 +135,7 @@ def detect_anomaly_insights(store_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────
 # 3. INVENTORY — ใกล้หมด + วิกฤต
 # ─────────────────────────────────────────────────────────
-def detect_inventory_insights(store_id: str) -> list[dict]:
+def detect_inventory_insights(store_id: str, lang: str = "th") -> list[dict]:
     insights = []
     df = data_service.get_inventory_status(store_id)
     if df.empty:
@@ -128,13 +145,17 @@ def detect_inventory_insights(store_id: str) -> list[dict]:
     for _, row in urgent.iterrows():
         days = row["days_until_out"]
         sev = "CRITICAL" if days <= 2 else "WARNING"
-        action = "สั่งซื้อทันที" if days <= 2 else "วางแผนสั่งซื้อสัปดาห์นี้"
+        action = pick(lang, "สั่งซื้อทันที" if days <= 2 else "วางแผนสั่งซื้อสัปดาห์นี้",
+                      "Order immediately" if days <= 2 else "Plan to reorder this week")
         insights.append({
             "type": "INVENTORY", "severity": sev,
-            "title": f"{row['name']} ใกล้หมด ({days:.0f} วัน)",
-            "description": (
+            "title": pick(lang, f"{row['name']} ใกล้หมด ({days:.0f} วัน)", f"{row['name']} running low ({days:.0f} days left)"),
+            "description": pick(
+                lang,
                 f"เหลือ {int(row['stock'])} ชิ้น ขายเฉลี่ย {row['avg_daily_sales']:.1f} ชิ้น/วัน "
-                f"จะหมดใน ~{days:.0f} วัน — {action}"
+                f"จะหมดใน ~{days:.0f} วัน — {action}",
+                f"{int(row['stock'])} units left, selling {row['avg_daily_sales']:.1f}/day on average — "
+                f"will run out in ~{days:.0f} days. {action}.",
             ),
             "metric": float(days),
             "metadata": {"stock": int(row["stock"]), "avg_daily": round(float(row["avg_daily_sales"]), 1)},
@@ -145,7 +166,7 @@ def detect_inventory_insights(store_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────
 # 4. DEAD STOCK — สินค้าค้างสต็อก ไม่มียอดขาย
 # ─────────────────────────────────────────────────────────
-def detect_dead_stock(store_id: str) -> list[dict]:
+def detect_dead_stock(store_id: str, lang: str = "th") -> list[dict]:
     insights = []
     try:
         inv = data_service.get_inventory_status(store_id)
@@ -155,13 +176,16 @@ def detect_dead_stock(store_id: str) -> list[dict]:
         dead = inv[(~inv["id"].isin(sold_ids)) & (inv["stock"] > 5)]
         if not dead.empty:
             names = ", ".join(dead["name"].tolist()[:3])
-            extra = f" และอีก {len(dead)-3} รายการ" if len(dead) > 3 else ""
+            extra = pick(lang, f" และอีก {len(dead)-3} รายการ", f" and {len(dead)-3} more") if len(dead) > 3 else ""
             insights.append({
                 "type": "INVENTORY", "severity": "WARNING",
-                "title": f"พบสินค้าค้างสต็อก {len(dead)} รายการ",
-                "description": (
+                "title": pick(lang, f"พบสินค้าค้างสต็อก {len(dead)} รายการ", f"{len(dead)} items sitting dead in stock"),
+                "description": pick(
+                    lang,
                     f"สินค้า {names}{extra} มีสต็อกแต่ไม่มียอดขายใน 30 วัน "
-                    "พิจารณาลดราคาระบาย จัด Bundle หรือเลิกสินค้า เพื่อลดทุนจม"
+                    "พิจารณาลดราคาระบาย จัด Bundle หรือเลิกสินค้า เพื่อลดทุนจม",
+                    f"{names}{extra} still have stock but no sales in the last 30 days. "
+                    "Consider a clearance discount, bundling, or discontinuing them to free up cash tied in inventory.",
                 ),
                 "metric": float(len(dead)),
                 "metadata": {"products": dead[["name", "stock"]].to_dict(orient="records")[:5]},
@@ -174,7 +198,7 @@ def detect_dead_stock(store_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────
 # 5. PROFIT HEALTH — margin, สินค้ายอดดีแต่กำไรน้อย
 # ─────────────────────────────────────────────────────────
-def detect_profit_health(store_id: str) -> list[dict]:
+def detect_profit_health(store_id: str, lang: str = "th") -> list[dict]:
     insights = []
     try:
         top = data_service.get_top_products(store_id, days=30, limit=20)
@@ -192,11 +216,16 @@ def detect_profit_health(store_id: str) -> list[dict]:
             worst = low_margin.iloc[0]
             insights.append({
                 "type": "PROFIT", "severity": "WARNING",
-                "title": f"'{worst['name']}' ขายดีแต่กำไรต่ำมาก ({worst['margin_pct']:.0f}%)",
-                "description": (
+                "title": pick(lang, f"'{worst['name']}' ขายดีแต่กำไรต่ำมาก ({worst['margin_pct']:.0f}%)",
+                              f"'{worst['name']}' sells well but margin is very thin ({worst['margin_pct']:.0f}%)"),
+                "description": pick(
+                    lang,
                     f"สินค้า '{worst['name']}' มียอดขาย {worst['revenue']:,.0f} บาท "
                     f"แต่กำไรเพียง {worst['profit']:,.0f} บาท (margin {worst['margin_pct']:.0f}%) "
-                    "ควรทบทวนราคาขาย หรือลดต้นทุน"
+                    "ควรทบทวนราคาขาย หรือลดต้นทุน",
+                    f"'{worst['name']}' brought in {worst['revenue']:,.0f}฿ in revenue "
+                    f"but only {worst['profit']:,.0f}฿ profit (margin {worst['margin_pct']:.0f}%). "
+                    "Reconsider the price or cut costs.",
                 ),
                 "metric": round(float(worst["margin_pct"]), 1),
                 "metadata": {"product": worst["name"], "revenue": round(float(worst["revenue"]), 0)},
@@ -210,11 +239,14 @@ def detect_profit_health(store_id: str) -> list[dict]:
             if overall_margin < 20:
                 insights.append({
                     "type": "PROFIT", "severity": "WARNING",
-                    "title": f"Gross Margin รวมต่ำกว่าเป้า ({overall_margin:.0f}%)",
-                    "description": (
+                    "title": pick(lang, f"Gross Margin รวมต่ำกว่าเป้า ({overall_margin:.0f}%)", f"Overall gross margin below target ({overall_margin:.0f}%)"),
+                    "description": pick(
+                        lang,
                         f"Gross margin รวม 30 วัน อยู่ที่ {overall_margin:.0f}% "
                         "ซึ่งต่ำกว่าเกณฑ์ปกติ (20%+) "
-                        "ตรวจสอบต้นทุนสินค้า หรือพิจารณาปรับราคาขาย"
+                        "ตรวจสอบต้นทุนสินค้า หรือพิจารณาปรับราคาขาย",
+                        f"30-day gross margin is {overall_margin:.0f}%, below the healthy benchmark (20%+). "
+                        "Review your cost of goods, or consider a price adjustment.",
                     ),
                     "metric": round(overall_margin, 1),
                 })
@@ -226,7 +258,7 @@ def detect_profit_health(store_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────
 # 6. AOV TREND — แนวโน้มค่าเฉลี่ยต่อบิล
 # ─────────────────────────────────────────────────────────
-def detect_aov_trend(store_id: str) -> list[dict]:
+def detect_aov_trend(store_id: str, lang: str = "th") -> list[dict]:
     insights = []
     try:
         df = data_service.get_daily_sales(store_id, days=28)
@@ -245,21 +277,28 @@ def detect_aov_trend(store_id: str) -> list[dict]:
             if change <= -10:
                 insights.append({
                     "type": "TREND", "severity": "WARNING",
-                    "title": f"ค่าเฉลี่ยต่อบิล (AOV) ลดลง {abs(change):.0f}%",
-                    "description": (
+                    "title": pick(lang, f"ค่าเฉลี่ยต่อบิล (AOV) ลดลง {abs(change):.0f}%", f"Average order value down {abs(change):.0f}%"),
+                    "description": pick(
+                        lang,
                         f"AOV 2 สัปดาห์ล่าสุดอยู่ที่ {recent_aov:,.0f} บาท/บิล "
                         f"ลดลงจาก {older_aov:,.0f} บาท ({abs(change):.0f}%) "
-                        "ลูกค้าซื้อน้อยลงต่อครั้ง — ลอง Upsell หรือ Bundle สินค้า"
+                        "ลูกค้าซื้อน้อยลงต่อครั้ง — ลอง Upsell หรือ Bundle สินค้า",
+                        f"The last 2 weeks' AOV is {recent_aov:,.0f}฿/order, "
+                        f"down from {older_aov:,.0f}฿ ({abs(change):.0f}%). "
+                        "Customers are buying less per visit — try upselling or bundling.",
                     ),
                     "metric": round(change, 1),
                 })
             elif change >= 10:
                 insights.append({
                     "type": "TREND", "severity": "INFO",
-                    "title": f"ค่าเฉลี่ยต่อบิล (AOV) เพิ่มขึ้น {change:.0f}%",
-                    "description": (
+                    "title": pick(lang, f"ค่าเฉลี่ยต่อบิล (AOV) เพิ่มขึ้น {change:.0f}%", f"Average order value up {change:.0f}%"),
+                    "description": pick(
+                        lang,
                         f"AOV ล่าสุด {recent_aov:,.0f} บาท/บิล เพิ่มขึ้น {change:.0f}% "
-                        "ลูกค้าซื้อมากขึ้นต่อครั้ง — ดูว่า strategy ไหนได้ผลแล้วทำต่อ"
+                        "ลูกค้าซื้อมากขึ้นต่อครั้ง — ดูว่า strategy ไหนได้ผลแล้วทำต่อ",
+                        f"Latest AOV is {recent_aov:,.0f}฿/order, up {change:.0f}%. "
+                        "Customers are buying more per visit — see which strategy is working and keep it up.",
                     ),
                     "metric": round(change, 1),
                 })
@@ -271,7 +310,7 @@ def detect_aov_trend(store_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────
 # 7. DAY-OF-WEEK PATTERN — วันขายดี/แย่
 # ─────────────────────────────────────────────────────────
-def detect_dayofweek_insights(store_id: str) -> list[dict]:
+def detect_dayofweek_insights(store_id: str, lang: str = "th") -> list[dict]:
     insights = []
     try:
         heatmap = data_service.get_hourly_heatmap(store_id, days=30)
@@ -279,6 +318,7 @@ def detect_dayofweek_insights(store_id: str) -> list[dict]:
             return insights
 
         DOW_TH = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"]
+        DOW_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
         by_dow = heatmap.groupby("dow")["revenue"].sum().reset_index()
         if len(by_dow) < 3:
             return insights
@@ -287,19 +327,24 @@ def detect_dayofweek_insights(store_id: str) -> list[dict]:
         worst = by_dow.loc[by_dow["revenue"].idxmin()]
         avg = by_dow["revenue"].mean()
 
-        best_name  = DOW_TH[int(best["dow"])]
-        worst_name = DOW_TH[int(worst["dow"])]
+        best_name  = pick(lang, DOW_TH[int(best["dow"])], DOW_EN[int(best["dow"])])
+        worst_name = pick(lang, DOW_TH[int(worst["dow"])], DOW_EN[int(worst["dow"])])
         best_pct   = (best["revenue"] - avg) / avg * 100
         worst_pct  = (worst["revenue"] - avg) / avg * 100
 
         insights.append({
             "type": "TREND", "severity": "INFO",
-            "title": f"วัน{best_name} คือวันขายดีที่สุด (+{best_pct:.0f}% vs เฉลี่ย)",
-            "description": (
+            "title": pick(lang, f"วัน{best_name} คือวันขายดีที่สุด (+{best_pct:.0f}% vs เฉลี่ย)", f"{best_name} is the best-selling day (+{best_pct:.0f}% vs average)"),
+            "description": pick(
+                lang,
                 f"วัน{best_name} มียอดขายสูงสุด {best['revenue']:,.0f} บาท "
                 f"สูงกว่าเฉลี่ย {best_pct:.0f}% "
                 f"ส่วนวัน{worst_name} ขายน้อยสุด ({worst_pct:.0f}% vs เฉลี่ย) "
-                "ควรจัดโปรโมชันหรือกิจกรรมในวันที่ยอดต่ำ"
+                "ควรจัดโปรโมชันหรือกิจกรรมในวันที่ยอดต่ำ",
+                f"{best_name} has the highest revenue at {best['revenue']:,.0f}฿, "
+                f"{best_pct:.0f}% above average. "
+                f"{worst_name} sells the least ({worst_pct:.0f}% vs average). "
+                "Consider running a promotion on the slower day.",
             ),
             "metric": round(float(best_pct), 1),
             "metadata": {"best_day": best_name, "worst_day": worst_name},
@@ -312,7 +357,7 @@ def detect_dayofweek_insights(store_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────
 # 8. CONSECUTIVE DECLINE — ยอดลงติดต่อกัน N วัน
 # ─────────────────────────────────────────────────────────
-def detect_consecutive_decline(store_id: str) -> list[dict]:
+def detect_consecutive_decline(store_id: str, lang: str = "th") -> list[dict]:
     insights = []
     try:
         df = data_service.get_daily_sales(store_id, days=14)
@@ -332,11 +377,15 @@ def detect_consecutive_decline(store_id: str) -> list[dict]:
             drop      = (end_rev - start_rev) / start_rev * 100 if start_rev > 0 else 0
             insights.append({
                 "type": "ANOMALY", "severity": "CRITICAL" if streak >= 5 else "WARNING",
-                "title": f"ยอดขายลดลงติดต่อกัน {streak} วัน",
-                "description": (
+                "title": pick(lang, f"ยอดขายลดลงติดต่อกัน {streak} วัน", f"Sales have declined for {streak} days straight"),
+                "description": pick(
+                    lang,
                     f"ยอดขายลดลงต่อเนื่อง {streak} วันติด "
                     f"จาก {start_rev:,.0f} เหลือ {end_rev:,.0f} บาท ({drop:.0f}%) "
-                    "ต้องหาสาเหตุและแก้ไขเร่งด่วน: สต็อก? คู่แข่ง? บริการ?"
+                    "ต้องหาสาเหตุและแก้ไขเร่งด่วน: สต็อก? คู่แข่ง? บริการ?",
+                    f"Revenue has fallen for {streak} consecutive days, "
+                    f"from {start_rev:,.0f}฿ to {end_rev:,.0f}฿ ({drop:.0f}%). "
+                    "Find the cause urgently: stock? competitors? service?",
                 ),
                 "metric": float(streak),
             })
@@ -348,7 +397,7 @@ def detect_consecutive_decline(store_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────
 # 9. PRODUCT OPPORTUNITY — margin ดีแต่ขายน้อย
 # ─────────────────────────────────────────────────────────
-def detect_product_opportunities(store_id: str) -> list[dict]:
+def detect_product_opportunities(store_id: str, lang: str = "th") -> list[dict]:
     insights = []
     try:
         top = data_service.get_top_products(store_id, days=30, limit=50)
@@ -367,11 +416,16 @@ def detect_product_opportunities(store_id: str) -> list[dict]:
             best = opps.sort_values("margin_pct", ascending=False).iloc[0]
             insights.append({
                 "type": "RECOMMENDATION", "severity": "INFO",
-                "title": f"โอกาสทอง: '{best['name']}' margin {best['margin_pct']:.0f}% แต่ขายน้อย",
-                "description": (
+                "title": pick(lang, f"โอกาสทอง: '{best['name']}' margin {best['margin_pct']:.0f}% แต่ขายน้อย",
+                              f"Golden opportunity: '{best['name']}' has {best['margin_pct']:.0f}% margin but low sales"),
+                "description": pick(
+                    lang,
                     f"'{best['name']}' มี gross margin {best['margin_pct']:.0f}% "
                     f"แต่ยอดขายเพียง {best['revenue']:,.0f} บาท (ต่ำกว่าสินค้าอื่น) "
-                    "ลอง Feature ในเมนู จัดโปรโมชัน หรือ แนะนำแก่ลูกค้าให้มากขึ้น"
+                    "ลอง Feature ในเมนู จัดโปรโมชัน หรือ แนะนำแก่ลูกค้าให้มากขึ้น",
+                    f"'{best['name']}' has a {best['margin_pct']:.0f}% gross margin "
+                    f"but only {best['revenue']:,.0f}฿ in revenue (lower than other items). "
+                    "Try featuring it on the menu, running a promotion, or having staff recommend it more.",
                 ),
                 "metric": round(float(best["margin_pct"]), 1),
                 "metadata": {"product": best["name"], "margin": round(float(best["margin_pct"]), 1)},
@@ -384,7 +438,7 @@ def detect_product_opportunities(store_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────
 # 10. DEMAND SPIKE — สินค้าขายเร็วกว่าปกติ 2x
 # ─────────────────────────────────────────────────────────
-def detect_demand_spikes(store_id: str) -> list[dict]:
+def detect_demand_spikes(store_id: str, lang: str = "th") -> list[dict]:
     insights = []
     try:
         recent = data_service.get_top_products(store_id, days=7,  limit=20)
@@ -405,12 +459,17 @@ def detect_demand_spikes(store_id: str) -> list[dict]:
             ratio = row["daily_recent"] / row["daily_older"]
             insights.append({
                 "type": "INVENTORY", "severity": "WARNING",
-                "title": f"'{row['name']}' ขายเร็วขึ้น {ratio:.0f}x — เช็คสต็อก",
-                "description": (
+                "title": pick(lang, f"'{row['name']}' ขายเร็วขึ้น {ratio:.0f}x — เช็คสต็อก", f"'{row['name']}' selling {ratio:.0f}x faster — check stock"),
+                "description": pick(
+                    lang,
                     f"7 วันล่าสุดขาย {row['qty_sold_7d']} ชิ้น "
                     f"(เฉลี่ย {row['daily_recent']:.1f}/วัน) "
                     f"เร็วกว่าปกติ {ratio:.1f} เท่า "
-                    "ตรวจสอบว่าสต็อกเพียงพอรองรับ demand ที่เพิ่มขึ้น"
+                    "ตรวจสอบว่าสต็อกเพียงพอรองรับ demand ที่เพิ่มขึ้น",
+                    f"Sold {row['qty_sold_7d']} units in the last 7 days "
+                    f"(avg {row['daily_recent']:.1f}/day) — "
+                    f"{ratio:.1f}x faster than usual. "
+                    "Make sure stock can keep up with the higher demand.",
                 ),
                 "metric": round(float(ratio), 1),
             })
@@ -422,7 +481,7 @@ def detect_demand_spikes(store_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────
 # 11. PEAK HOUR
 # ─────────────────────────────────────────────────────────
-def detect_peak_hour_insights(store_id: str) -> list[dict]:
+def detect_peak_hour_insights(store_id: str, lang: str = "th") -> list[dict]:
     insights = []
     try:
         peak = forecast_service.predict_peak_hours(store_id)
@@ -432,11 +491,15 @@ def detect_peak_hour_insights(store_id: str) -> list[dict]:
             top = top3[0]
             insights.append({
                 "type": "TREND", "severity": "INFO",
-                "title": f"Peak hours: {hours_str} น.",
-                "description": (
+                "title": pick(lang, f"Peak hours: {hours_str} น.", f"Peak hours: {hours_str}"),
+                "description": pick(
+                    lang,
                     f"ช่วง {top['hour']:02d}:00-{top['hour']+1:02d}:00 น. "
                     f"มีออเดอร์สูงสุด ({top['orders']} ออเดอร์/ช่วง) "
-                    "เตรียมพนักงานและ stock ให้พร้อมในช่วงนี้เป็นพิเศษ"
+                    "เตรียมพนักงานและ stock ให้พร้อมในช่วงนี้เป็นพิเศษ",
+                    f"{top['hour']:02d}:00-{top['hour']+1:02d}:00 sees the most orders "
+                    f"({top['orders']} orders in that slot). "
+                    "Make sure staffing and stock are ready especially for this window.",
                 ),
                 "metric": float(top["hour"]),
             })
@@ -448,7 +511,7 @@ def detect_peak_hour_insights(store_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────
 # 12. FORECAST — พยากรณ์สัปดาห์หน้า
 # ─────────────────────────────────────────────────────────
-def detect_forecast_insights(store_id: str) -> list[dict]:
+def detect_forecast_insights(store_id: str, lang: str = "th") -> list[dict]:
     insights = []
     try:
         fc = forecast_service.forecast_revenue(store_id, days_ahead=7)
@@ -459,15 +522,19 @@ def detect_forecast_insights(store_id: str) -> list[dict]:
             if last_week > 0:
                 change = (forecast_week - last_week) / last_week * 100
                 if abs(change) >= 10:
-                    direction = "เพิ่มขึ้น" if change > 0 else "ลดลง"
+                    direction = pick(lang, "เพิ่มขึ้น" if change > 0 else "ลดลง", "rise" if change > 0 else "fall")
                     sev = "INFO" if change > 0 else "WARNING"
                     insights.append({
                         "type": "FORECAST", "severity": sev,
-                        "title": f"พยากรณ์: รายได้สัปดาห์หน้า{direction} {abs(change):.0f}%",
-                        "description": (
+                        "title": pick(lang, f"พยากรณ์: รายได้สัปดาห์หน้า{direction} {abs(change):.0f}%", f"Forecast: next week's revenue to {direction} {abs(change):.0f}%"),
+                        "description": pick(
+                            lang,
                             f"AI คาดว่า 7 วันข้างหน้าจะมีรายได้ ~{forecast_week:,.0f} บาท "
                             f"({direction} {abs(change):.0f}% จากสัปดาห์นี้ {last_week:,.0f} บาท) "
-                            + ("เตรียมสต็อกและพนักงานเพิ่ม" if change > 0 else "ควรวางแผนโปรโมชันรับมือ")
+                            + ("เตรียมสต็อกและพนักงานเพิ่ม" if change > 0 else "ควรวางแผนโปรโมชันรับมือ"),
+                            f"AI predicts ~{forecast_week:,.0f}฿ in revenue over the next 7 days "
+                            f"({direction} {abs(change):.0f}% from this week's {last_week:,.0f}฿). "
+                            + ("Prepare extra stock and staff." if change > 0 else "Consider planning a promotion to counter it."),
                         ),
                         "metric": round(change, 1),
                     })
@@ -479,7 +546,7 @@ def detect_forecast_insights(store_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────
 # GENERATE ALL
 # ─────────────────────────────────────────────────────────
-def generate_all_insights(store_id: str, save: bool = True) -> list[dict]:
+def generate_all_insights(store_id: str, save: bool = True, lang: str = "th") -> list[dict]:
     """รันทุก detector แล้ว return + save"""
     detectors = [
         detect_trend_insights,
@@ -499,7 +566,7 @@ def generate_all_insights(store_id: str, save: bool = True) -> list[dict]:
     all_insights = []
     for detector in detectors:
         try:
-            all_insights += detector(store_id)
+            all_insights += detector(store_id, lang=lang)
         except Exception as e:
             print(f"[WARN] detector {detector.__name__} failed: {e}")
 
@@ -509,7 +576,7 @@ def generate_all_insights(store_id: str, save: bool = True) -> list[dict]:
 
     if save:
         for ins in all_insights:
-            _save_insight(store_id, ins)
+            _save_insight(store_id, ins, lang=lang)
 
     return all_insights
 

@@ -15,6 +15,7 @@ from collections import defaultdict, Counter
 from itertools import combinations
 from sqlalchemy import text
 from .. import database
+from ..i18n import pick
 
 
 def _df(q: str, params: dict) -> pd.DataFrame:
@@ -28,6 +29,7 @@ def get_basket_rules(
     min_support: int = 3,
     min_confidence: float = 0.3,
     top_n: int = 20,
+    lang: str = "th",
 ) -> dict:
     """
     คืน association rules: {antecedent} → {consequent}
@@ -117,9 +119,12 @@ def get_basket_rules(
                 "co_occurrence": r["support"],
                 "confidence": r["confidence"],
                 "lift": r["lift"],
-                "suggestion": (
+                "suggestion": pick(
+                    lang,
                     f"สร้างเซต '{r['antecedent_name']} + {r['consequent_name']}' — "
-                    f"ขายร่วมกัน {r['support']} ครั้ง ({r['support_pct']}% ของบิล)"
+                    f"ขายร่วมกัน {r['support']} ครั้ง ({r['support_pct']}% ของบิล)",
+                    f"Bundle '{r['antecedent_name']} + {r['consequent_name']}' — "
+                    f"bought together {r['support']} times ({r['support_pct']}% of orders)",
                 ),
             })
         if len(bundle_suggestions) >= 10:

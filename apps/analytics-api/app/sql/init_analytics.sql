@@ -12,9 +12,13 @@ CREATE TABLE IF NOT EXISTS ai_insights (
   metric      DOUBLE PRECISION,
   metadata    JSONB,
   is_read     BOOLEAN DEFAULT FALSE,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  lang        TEXT NOT NULL DEFAULT 'th'   -- language the title/description were generated in
 );
 CREATE INDEX IF NOT EXISTS idx_insights_store ON ai_insights(store_id, created_at DESC);
+
+-- Additive migration for databases created before the `lang` column existed
+ALTER TABLE ai_insights ADD COLUMN IF NOT EXISTS lang TEXT NOT NULL DEFAULT 'th';
 
 -- Chat sessions + messages
 CREATE TABLE IF NOT EXISTS chat_sessions (

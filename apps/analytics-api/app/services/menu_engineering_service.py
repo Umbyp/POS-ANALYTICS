@@ -9,6 +9,7 @@ Menu Engineering Matrix (Kasavana–Smith)
 import pandas as pd
 from sqlalchemy import text
 from .. import database
+from ..i18n import pick
 
 
 def _df(q: str, params: dict) -> pd.DataFrame:
@@ -16,7 +17,7 @@ def _df(q: str, params: dict) -> pd.DataFrame:
         return pd.read_sql(text(q), conn, params=params)
 
 
-def get_menu_engineering(store_id: str, days: int = 30) -> dict:
+def get_menu_engineering(store_id: str, days: int = 30, lang: str = "th") -> dict:
     q = """
         SELECT
             p.id,
@@ -56,12 +57,12 @@ def get_menu_engineering(store_id: str, days: int = 30) -> dict:
         high_pop = row["qty_sold"] >= pop_threshold
         high_profit = row["profit_per_unit"] >= profit_threshold
         if high_pop and high_profit:
-            return ("Star", "⭐", "เก็บไว้/promote — กำไรดีและขายดี")
+            return ("Star", "⭐", pick(lang, "เก็บไว้/promote — กำไรดีและขายดี", "Keep it up / promote it — good profit and good sales"))
         if high_pop and not high_profit:
-            return ("Plowhorse", "🐴", "ลองปรับราคาขึ้นเล็กน้อย หรือลด cost")
+            return ("Plowhorse", "🐴", pick(lang, "ลองปรับราคาขึ้นเล็กน้อย หรือลด cost", "Try a small price increase, or cut costs"))
         if not high_pop and high_profit:
-            return ("Puzzle", "🧩", "ถ้ามีจริง — push promote/reposition")
-        return ("Dog", "🐕", "พิจารณาตัดออก หรือ rebrand")
+            return ("Puzzle", "🧩", pick(lang, "ถ้ามีจริง — push promote/reposition", "If it's real potential — push it or reposition it"))
+        return ("Dog", "🐕", pick(lang, "พิจารณาตัดออก หรือ rebrand", "Consider cutting it, or rebranding it"))
 
     df[["quadrant", "icon", "recommendation"]] = df.apply(
         lambda r: pd.Series(classify(r)), axis=1

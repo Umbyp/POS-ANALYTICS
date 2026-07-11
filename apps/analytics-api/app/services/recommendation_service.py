@@ -4,9 +4,10 @@ Recommendation Engine — แนะนำการตัดสินใจทา
 import pandas as pd
 
 from . import data_service, forecast_service
+from ..i18n import pick
 
 
-def recommend_restock(store_id: str) -> list[dict]:
+def recommend_restock(store_id: str, lang: str = "th") -> list[dict]:
     """แนะนำสินค้าที่ควรสั่งเพิ่ม + จำนวนที่แนะนำ"""
     df = data_service.get_inventory_status(store_id)
     if df.empty:
@@ -24,13 +25,17 @@ def recommend_restock(store_id: str) -> list[dict]:
             "current_stock": int(row["stock"]),
             "days_until_out": float(row["days_until_out"]),
             "suggested_order_qty": int(suggested),
-            "reason": f"ขายเฉลี่ย {row['avg_daily_sales']:.1f}/วัน จะหมดใน {row['days_until_out']:.0f} วัน",
+            "reason": pick(
+                lang,
+                f"ขายเฉลี่ย {row['avg_daily_sales']:.1f}/วัน จะหมดใน {row['days_until_out']:.0f} วัน",
+                f"Selling {row['avg_daily_sales']:.1f}/day on average — runs out in {row['days_until_out']:.0f} days",
+            ),
             "priority": "HIGH" if row["days_until_out"] <= 5 else "MEDIUM",
         })
     return sorted(recs, key=lambda x: x["days_until_out"])
 
 
-def recommend_discontinue(store_id: str) -> list[dict]:
+def recommend_discontinue(store_id: str, lang: str = "th") -> list[dict]:
     """แนะนำสินค้าที่ควรเลิกขาย (ขายช้า + ทุนจม)"""
     top = data_service.get_top_products(store_id, days=60, limit=1000)
     inv = data_service.get_inventory_status(store_id)
@@ -46,12 +51,16 @@ def recommend_discontinue(store_id: str) -> list[dict]:
                 "product_id": row["id"],
                 "product_name": row["name"],
                 "current_stock": int(row["stock"]),
-                "reason": "ไม่มียอดขายใน 60 วันที่ผ่านมา — พิจารณาลดราคาระบายหรือเลิกขาย",
+                "reason": pick(
+                    lang,
+                    "ไม่มียอดขายใน 60 วันที่ผ่านมา — พิจารณาลดราคาระบายหรือเลิกขาย",
+                    "No sales in the last 60 days — consider a clearance discount or discontinuing it",
+                ),
             })
     return recs[:10]
 
 
-def recommend_promotions(store_id: str) -> list[dict]:
+def recommend_promotions(store_id: str, lang: str = "th") -> list[dict]:
     """ไอเดียโปรโมชัน"""
     top = data_service.get_top_products(store_id, days=30, limit=20)
     if top.empty:
@@ -67,7 +76,11 @@ def recommend_promotions(store_id: str) -> list[dict]:
         recs.append({
             "type": "PROMOTE",
             "product_name": row["name"],
-            "suggestion": f"โปรโมต '{row['name']}' — กำไรต่อหน่วยสูง ({row['margin']*100:.0f}%) เพิ่มยอดขายจะกำไรดี",
+            "suggestion": pick(
+                lang,
+                f"โปรโมต '{row['name']}' — กำไรต่อหน่วยสูง ({row['margin']*100:.0f}%) เพิ่มยอดขายจะกำไรดี",
+                f"Promote '{row['name']}' — high per-unit margin ({row['margin']*100:.0f}%), more sales means more profit",
+            ),
         })
 
     # Bundle: สินค้าขายดี 2 ตัวแรก
@@ -75,13 +88,17 @@ def recommend_promotions(store_id: str) -> list[dict]:
         recs.append({
             "type": "BUNDLE",
             "product_name": f"{top.iloc[0]['name']} + {top.iloc[1]['name']}",
-            "suggestion": f"จัดเซ็ต '{top.iloc[0]['name']}' คู่ '{top.iloc[1]['name']}' ในราคาพิเศษ เพิ่มยอดต่อบิล",
+            "suggestion": pick(
+                lang,
+                f"จัดเซ็ต '{top.iloc[0]['name']}' คู่ '{top.iloc[1]['name']}' ในราคาพิเศษ เพิ่มยอดต่อบิล",
+                f"Bundle '{top.iloc[0]['name']}' with '{top.iloc[1]['name']}' at a special price to raise the average ticket",
+            ),
         })
 
     return recs
 
 
-def recommend_high_profit(store_id: str) -> list[dict]:
+def recommend_high_profit(store_id: str, lang: str = "th") -> list[dict]:
     """สินค้าทำกำไรสูงสุด"""
     top = data_service.get_top_products(store_id, days=30, limit=10)
     if top.empty:
@@ -97,10 +114,10 @@ def recommend_high_profit(store_id: str) -> list[dict]:
     ]
 
 
-def get_all_recommendations(store_id: str) -> dict:
+def get_all_recommendations(store_id: str, lang: str = "th") -> dict:
     return {
-        "restock": recommend_restock(store_id),
-        "discontinue": recommend_discontinue(store_id),
-        "promotions": recommend_promotions(store_id),
-        "high_profit": recommend_high_profit(store_id),
+        "restock": recommend_restock(store_id, lang=lang),
+        "discontinue": recommend_discontinue(store_id, lang=lang),
+        "promotions": recommend_promotions(store_id, lang=lang),
+        "high_profit": recommend_high_profit(store_id, lang=lang),
     }

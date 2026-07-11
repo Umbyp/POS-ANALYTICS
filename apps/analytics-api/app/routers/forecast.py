@@ -35,13 +35,13 @@ def list_insights(store_id: str, limit: int = 20):
 
 
 @insights_router.post("/generate")
-def generate(store_id: str):
+def generate(store_id: str, lang: str = "th"):
     """รัน insight engine — ลบเก่า แล้ว generate ใหม่ทั้งหมด"""
     from sqlalchemy import text
     from ..database import engine
     with engine.begin() as conn:
         conn.execute(text("DELETE FROM ai_insights WHERE store_id = :s"), {"s": store_id})
-    return {"generated": insight_service.generate_all_insights(store_id, save=True)}
+    return {"generated": insight_service.generate_all_insights(store_id, save=True, lang=lang)}
 
 
 # ============ RECOMMENDATIONS ============
@@ -49,5 +49,5 @@ rec_router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
 
 
 @rec_router.get("")
-def all_recommendations(store_id: str):
-    return recommendation_service.get_all_recommendations(store_id)
+def all_recommendations(store_id: str, lang: str = "th"):
+    return recommendation_service.get_all_recommendations(store_id, lang=lang)

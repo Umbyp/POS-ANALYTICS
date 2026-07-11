@@ -11,6 +11,7 @@ import datetime
 from sqlalchemy import text
 from .. import database
 from . import data_service, basket_service, menu_engineering_service, segmentation_service
+from ..i18n import pick
 
 
 def _df(q: str, params: dict) -> pd.DataFrame:
@@ -20,22 +21,22 @@ def _df(q: str, params: dict) -> pd.DataFrame:
 
 # ==================== Promotion Recommendation ====================
 
-def recommend_promotions(store_id: str) -> list[dict]:
+def recommend_promotions(store_id: str, lang: str = "th") -> list[dict]:
     """AI ดู data หลายมุม แล้วเสนอโปรที่ควรทำ พร้อมเหตุผล + คาดการณ์ผล"""
     suggestions = []
     now = datetime.datetime.now()
 
     # 1. Bundle จาก basket analysis
     try:
-        bm = basket_service.get_basket_rules(store_id, days=60, min_support=5, min_confidence=0.5)
+        bm = basket_service.get_basket_rules(store_id, days=60, min_support=5, min_confidence=0.5, lang=lang)
         for b in bm["bundle_suggestions"][:3]:
             suggestions.append({
                 "type": "BUNDLE",
                 "title": f"Combo: {' + '.join(b['items'])}",
-                "reason": f"ขายร่วมกันบ่อย ({b['co_occurrence']} ครั้ง, lift {b['lift']}x)",
-                "estimated_impact": f"เพิ่มยอดบิลเฉลี่ย ~10-15%",
+                "reason": pick(lang, f"ขายร่วมกันบ่อย ({b['co_occurrence']} ครั้ง, lift {b['lift']}x)", f"Frequently bought together ({b['co_occurrence']} times, lift {b['lift']}x)"),
+                "estimated_impact": pick(lang, "เพิ่มยอดบิลเฉลี่ย ~10-15%", "Boosts average ticket ~10-15%"),
                 "config": {
-                    "name": f"เซต {' + '.join(b['items'])[:30]}",
+                    "name": pick(lang, f"เซต {' + '.join(b['items'])[:30]}", f"Set {' + '.join(b['items'])[:30]}"),
                     "type": "FIXED_PRICE",
                     "scope": "PRODUCT",
                     "productIds": b["item_ids"],
@@ -70,9 +71,13 @@ def recommend_promotions(store_id: str) -> list[dict]:
                 slow_hour = slow.groupby("hour")["orders"].mean().idxmin()
                 suggestions.append({
                     "type": "HAPPY_HOUR",
-                    "title": f"Happy Hour ลด 20% เวลา {int(slow_hour):02d}:00-{int(slow_hour)+2:02d}:00",
-                    "reason": f"ช่วงนี้ขายต่ำกว่าค่าเฉลี่ย {(1 - slow[slow['hour']==slow_hour]['orders'].mean()/avg)*100:.0f}%",
-                    "estimated_impact": "ดึงยอดช่วงเงียบ +30-50%",
+                    "title": pick(lang, f"Happy Hour ลด 20% เวลา {int(slow_hour):02d}:00-{int(slow_hour)+2:02d}:00", f"Happy Hour — 20% off {int(slow_hour):02d}:00-{int(slow_hour)+2:02d}:00"),
+                    "reason": pick(
+                        lang,
+                        f"ช่วงนี้ขายต่ำกว่าค่าเฉลี่ย {(1 - slow[slow['hour']==slow_hour]['orders'].mean()/avg)*100:.0f}%",
+                        f"This slot sells {(1 - slow[slow['hour']==slow_hour]['orders'].mean()/avg)*100:.0f}% below average",
+                    ),
+                    "estimated_impact": pick(lang, "ดึงยอดช่วงเงียบ +30-50%", "Lifts the quiet slot by +30-50%"),
                     "config": {
                         "name": f"Happy Hour {int(slow_hour):02d}:00-{int(slow_hour)+2:02d}:00",
                         "type": "PERCENT_OFF",
@@ -87,14 +92,14 @@ def recommend_promotions(store_id: str) -> list[dict]:
 
     # 3. Win-back สำหรับ At Risk
     try:
-        rfm = segmentation_service.get_rfm_segments(store_id)
+        rfm = segmentation_service.get_rfm_segments(store_id, lang=lang)
         at_risk = next((s for s in rfm["segments"] if s["segment"] == "At Risk"), None)
         if at_risk and at_risk["count"] >= 5:
             suggestions.append({
                 "type": "WINBACK",
-                "title": f"Win-back Coupon — ส่งให้ลูกค้า At Risk {at_risk['count']} คน",
-                "reason": f"ลูกค้ากำลังจะหายไป (ไม่มา 90-180 วัน)",
-                "estimated_impact": f"กลับมา ~10-15% = {int(at_risk['count'] * 0.12)} คน",
+                "title": pick(lang, f"Win-back Coupon — ส่งให้ลูกค้า At Risk {at_risk['count']} คน", f"Win-back coupon — send to {at_risk['count']} At-Risk customers"),
+                "reason": pick(lang, "ลูกค้ากำลังจะหายไป (ไม่มา 90-180 วัน)", "These customers are about to churn (haven't visited in 90-180 days)"),
+                "estimated_impact": pick(lang, f"กลับมา ~10-15% = {int(at_risk['count'] * 0.12)} คน", f"~10-15% expected to return = {int(at_risk['count'] * 0.12)} customers"),
                 "config": {
                     "name": "Win-back Member",
                     "type": "PERCENT_OFF",
@@ -110,15 +115,19 @@ def recommend_promotions(store_id: str) -> list[dict]:
 
     # 4. Plowhorse — เมนูที่ขายดีแต่กำไรน้อย → ปรับราคา/ลดต้นทุน
     try:
-        me = menu_engineering_service.get_menu_engineering(store_id, days=30)
+        me = menu_engineering_service.get_menu_engineering(store_id, days=30, lang=lang)
         plowhorses = [i for i in me["items"] if i["quadrant"] == "Plowhorse"]
         if plowhorses:
             top = plowhorses[0]
             suggestions.append({
                 "type": "PRICE_UP",
-                "title": f"ขึ้นราคา {top['name']} 5-10฿",
-                "reason": f"ขายดี ({top['qty_sold']} ชิ้น/30วัน) แต่กำไรต่อชิ้นต่ำ ({top['profit_per_unit']:.0f}฿)",
-                "estimated_impact": f"+{top['qty_sold'] * 7:.0f}฿/เดือน ถ้าขายเท่าเดิม",
+                "title": pick(lang, f"ขึ้นราคา {top['name']} 5-10฿", f"Raise the price of {top['name']} by 5-10฿"),
+                "reason": pick(
+                    lang,
+                    f"ขายดี ({top['qty_sold']} ชิ้น/30วัน) แต่กำไรต่อชิ้นต่ำ ({top['profit_per_unit']:.0f}฿)",
+                    f"Sells well ({top['qty_sold']} units/30d) but per-unit profit is low ({top['profit_per_unit']:.0f}฿)",
+                ),
+                "estimated_impact": pick(lang, f"+{top['qty_sold'] * 7:.0f}฿/เดือน ถ้าขายเท่าเดิม", f"+{top['qty_sold'] * 7:.0f}฿/month if volume stays the same"),
                 "config": {
                     "productId": top["id"],
                     "currentPrice": top.get("avg_price"),
@@ -130,17 +139,21 @@ def recommend_promotions(store_id: str) -> list[dict]:
 
     # 5. Push Puzzles — กำไรดีแต่ขายน้อย
     try:
-        me = menu_engineering_service.get_menu_engineering(store_id, days=30)
+        me = menu_engineering_service.get_menu_engineering(store_id, days=30, lang=lang)
         puzzles = [i for i in me["items"] if i["quadrant"] == "Puzzle"]
         if puzzles:
             top = puzzles[0]
             suggestions.append({
                 "type": "PROMOTE",
-                "title": f"Push '{top['name']}' — กำไรดี แต่คนยังไม่รู้จัก",
-                "reason": f"กำไร/ชิ้น {top['profit_per_unit']:.0f}฿ (สูง) แต่ขายแค่ {top['qty_sold']} ชิ้น/30วัน",
-                "estimated_impact": "ถ้าขายเพิ่ม 2x = +" + f"{top['profit']:.0f}฿/เดือน",
+                "title": pick(lang, f"Push '{top['name']}' — กำไรดี แต่คนยังไม่รู้จัก", f"Push '{top['name']}' — great margin, but nobody knows it yet"),
+                "reason": pick(
+                    lang,
+                    f"กำไร/ชิ้น {top['profit_per_unit']:.0f}฿ (สูง) แต่ขายแค่ {top['qty_sold']} ชิ้น/30วัน",
+                    f"Profit/unit {top['profit_per_unit']:.0f}฿ (high) but only {top['qty_sold']} units sold/30d",
+                ),
+                "estimated_impact": pick(lang, f"ถ้าขายเพิ่ม 2x = +{top['profit']:.0f}฿/เดือน", f"Selling 2x more = +{top['profit']:.0f}฿/month"),
                 "config": {
-                    "name": f"แนะนำเดือนนี้ — {top['name']}",
+                    "name": pick(lang, f"แนะนำเดือนนี้ — {top['name']}", f"Featured this month — {top['name']}"),
                     "type": "PERCENT_OFF",
                     "scope": "PRODUCT",
                     "productIds": [top["id"]],
@@ -155,7 +168,7 @@ def recommend_promotions(store_id: str) -> list[dict]:
 
 # ==================== What-If Simulator ====================
 
-def whatif_price_change(store_id: str, product_id: str, new_price: float) -> dict:
+def whatif_price_change(store_id: str, product_id: str, new_price: float, lang: str = "th") -> dict:
     """
     เทียบ scenario เปลี่ยนราคา product
     ใช้ price elasticity (simple): ถ้ามี historical price changes
@@ -221,21 +234,21 @@ def whatif_price_change(store_id: str, product_id: str, new_price: float) -> dic
             "projected_profit": new_profit,
             "profit_delta": new_profit - current_profit,
         },
-        "recommendation": _whatif_verdict(new_profit - current_profit, new_revenue - current_revenue),
+        "recommendation": _whatif_verdict(new_profit - current_profit, new_revenue - current_revenue, lang=lang),
     }
 
 
-def _whatif_verdict(profit_delta: float, revenue_delta: float) -> str:
+def _whatif_verdict(profit_delta: float, revenue_delta: float, lang: str = "th") -> str:
     if profit_delta > 0 and revenue_delta > 0:
-        return "✅ ดี — กำไรและยอดขายเพิ่มทั้งคู่"
+        return pick(lang, "✅ ดี — กำไรและยอดขายเพิ่มทั้งคู่", "✅ Good — both profit and revenue increase")
     if profit_delta > 0 and revenue_delta < 0:
-        return "🤔 ตัดสินใจ — กำไรเพิ่มแต่ยอดขายลด (มี trade-off)"
+        return pick(lang, "🤔 ตัดสินใจ — กำไรเพิ่มแต่ยอดขายลด (มี trade-off)", "🤔 Judgment call — profit rises but revenue falls (there's a trade-off)")
     if profit_delta < 0 and revenue_delta > 0:
-        return "⚠️ ระวัง — ยอดขายเพิ่มแต่กำไรลด (ขายเยอะแต่ไม่ได้กำไร)"
-    return "❌ ไม่แนะนำ — ลดทั้งกำไรและยอดขาย"
+        return pick(lang, "⚠️ ระวัง — ยอดขายเพิ่มแต่กำไรลด (ขายเยอะแต่ไม่ได้กำไร)", "⚠️ Caution — revenue rises but profit falls (more sales, less profit)")
+    return pick(lang, "❌ ไม่แนะนำ — ลดทั้งกำไรและยอดขาย", "❌ Not recommended — both profit and revenue drop")
 
 
-def whatif_discount(store_id: str, discount_pct: float, days: int = 30) -> dict:
+def whatif_discount(store_id: str, discount_pct: float, days: int = 30, lang: str = "th") -> dict:
     """ถ้าให้ส่วนลด X% ทั่วบิล คาดผลเป็นอย่างไร"""
     # ดึง avg ticket + order count 30 วัน
     q = """
@@ -277,7 +290,7 @@ def whatif_discount(store_id: str, discount_pct: float, days: int = 30) -> dict:
             "revenue_delta": new_revenue - revenue,
             "revenue_delta_pct": (new_revenue - revenue) / revenue * 100,
         },
-        "recommendation": _whatif_verdict(new_revenue - revenue, new_revenue - revenue),
+        "recommendation": _whatif_verdict(new_revenue - revenue, new_revenue - revenue, lang=lang),
     }
 
 
@@ -405,7 +418,7 @@ def forecast_product_demand(store_id: str, product_id: str, days_ahead: int = 14
 
 # ==================== Goal Coaching ====================
 
-def goal_coach(store_id: str) -> dict:
+def goal_coach(store_id: str, lang: str = "th") -> dict:
     """ดูเป้ารายเดือน vs actual → แนะนำว่าต้องทำอะไรเพื่อถึงเป้า"""
     now = datetime.datetime.now()
     day = now.day
@@ -416,7 +429,7 @@ def goal_coach(store_id: str) -> dict:
     q_store = "SELECT \"monthlyTarget\"::float as target FROM \"Store\" WHERE id = :sid"
     sdf = _df(q_store, {"sid": store_id})
     if sdf.empty or sdf.iloc[0]["target"] == 0:
-        return {"has_target": False, "message": "ยังไม่ได้ตั้งเป้ารายเดือน"}
+        return {"has_target": False, "message": pick(lang, "ยังไม่ได้ตั้งเป้ารายเดือน", "No monthly target set yet")}
 
     target = float(sdf.iloc[0]["target"])
 
@@ -449,22 +462,22 @@ def goal_coach(store_id: str) -> dict:
     if needed_daily > daily_run_rate * 1.5:
         # Need significant push
         recommendations.append({
-            "action": f"เพิ่ม avg/บิล จาก {avg:.0f} → {avg*1.15:.0f}฿",
-            "method": "Upsell + Combo + Cross-sell ใน POS",
+            "action": pick(lang, f"เพิ่ม avg/บิล จาก {avg:.0f} → {avg*1.15:.0f}฿", f"Raise avg/order from {avg:.0f} → {avg*1.15:.0f}฿"),
+            "method": pick(lang, "Upsell + Combo + Cross-sell ใน POS", "Upsell + combo + cross-sell in the POS"),
         })
         recommendations.append({
-            "action": f"เพิ่มออเดอร์/วัน จาก {orders/day:.0f} → {orders/day*1.2:.0f}",
-            "method": "โปร Happy Hour + LINE notify ลูกค้า",
+            "action": pick(lang, f"เพิ่มออเดอร์/วัน จาก {orders/day:.0f} → {orders/day*1.2:.0f}", f"Raise orders/day from {orders/day:.0f} → {orders/day*1.2:.0f}"),
+            "method": pick(lang, "โปร Happy Hour + LINE notify ลูกค้า", "Happy Hour promo + LINE notify to customers"),
         })
     elif needed_daily > daily_run_rate:
         recommendations.append({
-            "action": "รักษาระดับและกระตุ้นเพิ่มเล็กน้อย",
-            "method": "Bundle suggestions + Loyalty rewards",
+            "action": pick(lang, "รักษาระดับและกระตุ้นเพิ่มเล็กน้อย", "Stay the course with a small extra push"),
+            "method": pick(lang, "Bundle suggestions + Loyalty rewards", "Bundle suggestions + loyalty rewards"),
         })
     else:
         recommendations.append({
-            "action": "✅ on track — รักษาระดับนี้ต่อ",
-            "method": "เน้น customer retention",
+            "action": pick(lang, "✅ on track — รักษาระดับนี้ต่อ", "✅ On track — keep this pace up"),
+            "method": pick(lang, "เน้น customer retention", "Focus on customer retention"),
         })
 
     return {

@@ -17,6 +17,7 @@ import pandas as pd
 from datetime import datetime
 from sqlalchemy import text
 from .. import database
+from ..i18n import pick
 
 
 def _df(q: str, params: dict) -> pd.DataFrame:
@@ -24,7 +25,7 @@ def _df(q: str, params: dict) -> pd.DataFrame:
         return pd.read_sql(text(q), conn, params=params)
 
 
-def get_rfm_segments(store_id: str) -> dict:
+def get_rfm_segments(store_id: str, lang: str = "th") -> dict:
     """คำนวณ RFM + แบ่ง segment ทุก customer"""
     q = """
         SELECT
@@ -46,7 +47,11 @@ def get_rfm_segments(store_id: str) -> dict:
     """
     df = _df(q, {"store_id": store_id})
     if df.empty:
-        return {"customers": [], "segments": {}, "summary": {"total": 0}}
+        return {
+            "customers": [],
+            "segments": [],
+            "summary": {"total": 0, "champions": 0, "at_risk": 0, "lost": 0, "total_revenue": 0},
+        }
 
     # Handle never-purchased customers
     df["frequency"] = df["frequency"].fillna(0).astype(int)
@@ -79,60 +84,60 @@ def get_rfm_segments(store_id: str) -> dict:
     seg_counts = df["segment"].value_counts().to_dict()
     seg_revenue = df.groupby("segment")["monetary"].sum().to_dict()
 
-    # Per-segment recommendations (Thai)
+    # Per-segment recommendations
     SEGMENT_META = {
         "Champion": {
             "color": "#10b981",
             "icon": "🏆",
-            "action": "รักษาด้วย VIP rewards / สิทธิพิเศษ — อย่าให้หายไป",
+            "action": pick(lang, "รักษาด้วย VIP rewards / สิทธิพิเศษ — อย่าให้หายไป", "Retain with VIP rewards / perks — don't let them slip away"),
             "priority": 1,
         },
         "Loyal": {
             "color": "#3b82f6",
             "icon": "💎",
-            "action": "สร้างความผูกพัน — birthday reward, สะสมแต้มเพิ่ม",
+            "action": pick(lang, "สร้างความผูกพัน — birthday reward, สะสมแต้มเพิ่ม", "Build the relationship — birthday rewards, extra points"),
             "priority": 2,
         },
         "Big Spender": {
             "color": "#a855f7",
             "icon": "💰",
-            "action": "เสนอเมนู premium / ใหม่ก่อนใคร",
+            "action": pick(lang, "เสนอเมนู premium / ใหม่ก่อนใคร", "Offer premium items / early access to new ones"),
             "priority": 2,
         },
         "New": {
             "color": "#06b6d4",
             "icon": "🌱",
-            "action": "Onboarding coupon ครั้งที่ 2 ลด 30฿",
+            "action": pick(lang, "Onboarding coupon ครั้งที่ 2 ลด 30฿", "Send a 30฿ coupon for their 2nd visit"),
             "priority": 3,
         },
         "Promising": {
             "color": "#22c55e",
             "icon": "🌿",
-            "action": "กระตุ้นให้กลายเป็น Loyal — โปรกลับมาภายใน 30 วัน",
+            "action": pick(lang, "กระตุ้นให้กลายเป็น Loyal — โปรกลับมาภายใน 30 วัน", "Nudge them toward Loyal — a return-within-30-days promo"),
             "priority": 3,
         },
         "At Risk": {
             "color": "#f59e0b",
             "icon": "⚠️",
-            "action": "ส่ง LINE/SMS coupon ทันที — กำลังจะหาย",
+            "action": pick(lang, "ส่ง LINE/SMS coupon ทันที — กำลังจะหาย", "Send a LINE/SMS coupon now — they're about to churn"),
             "priority": 1,
         },
         "Hibernating": {
             "color": "#f97316",
             "icon": "😴",
-            "action": "Win-back campaign — coupon ลด 50%",
+            "action": pick(lang, "Win-back campaign — coupon ลด 50%", "Win-back campaign — 50% off coupon"),
             "priority": 2,
         },
         "Lost": {
             "color": "#ef4444",
             "icon": "💔",
-            "action": "ทำใจ หรือลอง re-engagement ครั้งเดียว",
+            "action": pick(lang, "ทำใจ หรือลอง re-engagement ครั้งเดียว", "Let it go, or try one last re-engagement attempt"),
             "priority": 4,
         },
         "Never Bought": {
             "color": "#6b7280",
             "icon": "❓",
-            "action": "ตรวจว่ามีลูกค้าจริงไหม / ทำไมไม่ซื้อ",
+            "action": pick(lang, "ตรวจว่ามีลูกค้าจริงไหม / ทำไมไม่ซื้อ", "Check whether they're a real customer / why they haven't bought"),
             "priority": 4,
         },
     }
@@ -252,7 +257,7 @@ def get_clv(store_id: str) -> dict:
     """
     df = _df(q, {"store_id": store_id})
     if df.empty:
-        return {"avg_clv": 0, "top_customers": []}
+        return {"avg_clv": 0, "median_clv": 0, "max_clv": 0, "total_customers": 0, "top_customers": []}
 
     avg_clv = float(df["total_spent"].mean())
     median_clv = float(df["total_spent"].median())
